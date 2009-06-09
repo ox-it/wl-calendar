@@ -39,6 +39,12 @@ calendar Portlet
 </tr>
 <tr>
 <td><img src = "#imageLink("$config.getProperty('legend.icon16')")" border="0" /> $tlang.getString('legend.key16')</td>        
+<td><img src = "#imageLink("$config.getProperty('legend.icon17')")" border="0" /> $tlang.getString('legend.key17')</td>
+<td><img src = "#imageLink("$config.getProperty('legend.icon18')")" border="0" /> $tlang.getString('legend.key18')</td>
+</tr>
+<tr>
+<td><img src = "#imageLink("$config.getProperty('legend.icon19')")" border="0" /> $tlang.getString('legend.key19')</td>
+<td><img src = "#imageLink("$config.getProperty('legend.icon20')")" border="0" /> $tlang.getString('legend.key20')</td>
 </tr>
 </table>
 
