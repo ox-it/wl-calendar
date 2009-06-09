@@ -854,6 +854,10 @@ public class CalendarBean {
 			eventImageMap.put("Quiz", imgLocation + "quiz.gif");
 			eventImageMap.put("Special event", imgLocation + "special_event.gif");
 			eventImageMap.put("Web Assignment", imgLocation + "webassignment.gif");
+			eventImageMap.put("Tutorial", imgLocation + "diss_validate1a.gif");
+			eventImageMap.put("Workshop", imgLocation + "class_sma.gif");
+			eventImageMap.put("Submission Date", imgLocation + "deadline.gif");
+			eventImageMap.put("Formative Assessment", imgLocation + "webassignment.gif");
 		}
 		return eventImageMap;
 	}

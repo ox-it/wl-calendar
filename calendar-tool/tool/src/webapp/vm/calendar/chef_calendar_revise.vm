@@ -829,6 +829,31 @@ function resizeFrame(){
 				#else 
 				<option value="Web Assignment">$tlang.getString("legend.key16")</option> 
 				#end
+
+				#if ($type =="Tutorial")
+				<option selected="selected" value="Tutorial">$tlang.getString("legend.key17")</option> 
+				#else
+				<option value="Tutorial">$tlang.getString("legend.key17")</option> 
+				#end
+
+				#if ($type =="Workshop")
+				<option selected="selected" value="Workshop">$tlang.getString("legend.key18")</option> 
+				#else
+				<option value="Workshop">$tlang.getString("legend.key18")</option> 
+				#end
+
+				#if ($type =="Submission Date")
+				<option selected="selected" value="Submission Date">$tlang.getString("legend.key19")</option> 
+				#else
+				<option value="Submission Date">$tlang.getString("legend.key19")</option> 
+				#end
+
+				#if ($type =="Formative Assessment")
+				<option selected="selected" value="Formative Assessment">$tlang.getString("legend.key20")</option> 
+				#else
+				<option value="Formative Assessment">$tlang.getString("legend.key20")</option> 
+				#end
+
 			</select>
 		</p>
 		<p class="shorttext">
