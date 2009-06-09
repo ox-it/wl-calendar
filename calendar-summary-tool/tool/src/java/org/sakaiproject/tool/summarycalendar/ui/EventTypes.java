@@ -34,6 +34,10 @@ public class EventTypes {
 		eventTypes.add("Quiz");
 		eventTypes.add("Special event");
 		eventTypes.add("Web Assignment");
+		eventTypes.add("Tutorial");
+		eventTypes.add("Workshop");
+		eventTypes.add("Submission Date");
+		eventTypes.add("Formative Assessment");
 	}
 
 	private static Map<String, String>	eventTypesToLocalized	= new HashMap<String, String>();
@@ -85,6 +89,10 @@ public class EventTypes {
 		eventTypesToLocalized.put("Quiz", msgs.getString("legend.key14"));
 		eventTypesToLocalized.put("Special event", msgs.getString("legend.key15"));
 		eventTypesToLocalized.put("Web Assignment", msgs.getString("legend.key16"));
+		eventTypesToLocalized.put("Tutorial", msgs.getString("legend.key17"));
+		eventTypesToLocalized.put("Workshop", msgs.getString("legend.key18"));
+		eventTypesToLocalized.put("Submission Date", msgs.getString("legend.key19"));
+		eventTypesToLocalized.put("Formative Assessment", msgs.getString("legend.key20"));
 	}
 
 }
