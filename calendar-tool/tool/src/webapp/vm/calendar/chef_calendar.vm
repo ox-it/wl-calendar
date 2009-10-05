@@ -86,6 +86,14 @@ calendar Portlet
 <img src = "#imageLink("$config.getProperty('legend.icon15')")" alt="$tlang.getString('legend.key15')" border="0">
 #elseif ($eventType =="Web Assignment")
 <img src = "#imageLink("$config.getProperty('legend.icon16')")" alt="$tlang.getString('legend.key16')" border="0">
+#elseif ($eventType =="Tutorial")
+<img src = "#imageLink("$config.getProperty('legend.icon17')")" alt="$tlang.getString('legend.key17')" border="0">
+#elseif ($eventType =="Workshop")
+<img src = "#imageLink("$config.getProperty('legend.icon18')")" alt="$tlang.getString('legend.key18')" border="0">
+#elseif ($eventType =="Submission Date")
+<img src = "#imageLink("$config.getProperty('legend.icon19')")" alt="$tlang.getString('legend.key19')" border="0">
+#elseif ($eventType =="Formative Assessment")
+<img src = "#imageLink("$config.getProperty('legend.icon20')")" alt="$tlang.getString('legend.key20')" border="0">
 #end
 #end
 
