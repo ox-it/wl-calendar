@@ -696,12 +696,12 @@ public class BaseExternalCalendarSubscriptionService implements
 		catch (MalformedURLException e)
 		{
 			m_log.error("Mal-formed URL in calendar subscription '" + calendarName
-					+ "': " + url, e);
+					+ "': " + url);
 		}
 		catch (IOException e)
 		{
 			m_log.error("Unable to read calendar subscription '" + calendarName
-					+ "' from URL (I/O Error): " + url, e);
+					+ "' from URL (I/O Error): " + url);
 		}
 		catch (Exception e)
 		{
