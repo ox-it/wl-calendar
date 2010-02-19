@@ -99,6 +99,10 @@ import org.sakaiproject.calendar.api.CalendarService;
 import org.sakaiproject.calendar.api.RecurrenceRule;
 import org.sakaiproject.calendar.api.CalendarEvent.EventAccess;
 import org.sakaiproject.calendar.cover.ExternalCalendarSubscriptionService;
+import org.sakaiproject.calendar.util.CalendarChannelReferenceMaker;
+import org.sakaiproject.calendar.util.CalendarReferenceToChannelConverter;
+import org.sakaiproject.calendar.util.CalendarUtil;
+import org.sakaiproject.calendar.util.EntryProvider;
 import org.sakaiproject.component.api.ServerConfigurationService;
 import org.sakaiproject.component.cover.ComponentManager;
 import org.sakaiproject.content.api.ContentHostingService;
@@ -144,10 +148,11 @@ import org.sakaiproject.tool.cover.ToolManager;
 import org.sakaiproject.user.api.UserNotDefinedException;
 import org.sakaiproject.user.cover.UserDirectoryService;
 import org.sakaiproject.util.BaseResourcePropertiesEdit;
-import org.sakaiproject.util.CalendarUtil;
 import org.sakaiproject.util.DefaultEntityHandler;
 import org.sakaiproject.util.EntityCollections;
 import org.sakaiproject.util.FormattedText;
+import org.sakaiproject.util.MergedList;
+import org.sakaiproject.util.MergedListEntryProviderFixedListWrapper;
 import org.sakaiproject.util.ResourceLoader;
 import org.sakaiproject.util.SAXEntityReader;
 import org.sakaiproject.util.StorageUser;
@@ -576,7 +581,7 @@ public abstract class BaseCalendarService implements CalendarService, StorageUse
 	 * @param service
 	 *        The SiteService.
 	 */
-	public void setSiteSerboce(SiteService service)
+	public void setSiteService(SiteService service)
 	{
 		m_siteService = service;
 	}
@@ -1224,21 +1229,48 @@ public abstract class BaseCalendarService implements CalendarService, StorageUse
 					}
 					else
 					{
-                  List alias =  m_aliasService.getAliases(calRef);
-                  String aliasName = "schedule.ics";
-                  if ( ! alias.isEmpty() )
-                     aliasName =  ((Alias)alias.get(0)).getId();
-						
+						// Extract the alias name to use for the filename.
+						List alias =  m_aliasService.getAliases(calRef);
+						String aliasName = "schedule.ics";
+						if ( ! alias.isEmpty() )
+							aliasName =  ((Alias)alias.get(0)).getId();
+
+						// Get the list of calendars to feed out.
+						List<String> referenceList = Collections.singletonList(calRef);
+						// If it's a MyWorkspace feed get all the site this user is a member of.
+						if (m_siteService.isUserSite(ref.getContext())){
+							MergedList mergedCalendarList = new MergedList();
+							String[] channelArray = mergedCalendarList.getAllPermittedChannels(new CalendarChannelReferenceMaker(BaseCalendarService.this));
+							MergedList.EntryProvider entryProvider = new MergedListEntryProviderFixedListWrapper(
+									  new EntryProvider(BaseCalendarService.this), 
+									  calRef,
+									  channelArray,
+									  new CalendarReferenceToChannelConverter(BaseCalendarService.this));
+							mergedCalendarList.loadChannelsFromDelimitedString(
+									true,
+									false,
+									entryProvider,
+									StringUtil.trimToZero(SessionManager.getCurrentSessionUserId()),
+									channelArray, 
+									false,
+									ref.getContext());
+							referenceList = mergedCalendarList.getReferenceList();
+						}
+						Time modDate = TimeService.newTime(0);
 						// update date/time reference
-						Time modDate = findCalendar(calRef).getModified();
-						if ( modDate == null )
-							modDate = TimeService.newTime(0);
-							
+						for (String curCalRef: referenceList)
+						{
+							Time curModDate = findCalendar(curCalRef).getModified();
+							if ( curModDate != null && curModDate.after(modDate))
+							{
+								modDate = curModDate;
+							}
+						}
 						res.addHeader("Content-Disposition", "inline; filename=\"" + aliasName + "\"");
 						res.setContentType(ICAL_MIME_TYPE);
 						res.setDateHeader("Last-Modified", modDate.getTime() );
 						
-						printICalSchedule(calRef, res.getOutputStream());
+						printICalSchedule(referenceList, res.getOutputStream());
 					}
 					
 					res.setContentLength(outByteStream.size());
@@ -1297,7 +1329,7 @@ public abstract class BaseCalendarService implements CalendarService, StorageUse
 			String context = null;
 			String id = null;
 			String container = null;
-
+			// /calendar/
 			// the first part will be null, then next the service, the third will be "calendar" or "event"
 			if (parts.length > 2)
 			{
@@ -1342,20 +1374,24 @@ public abstract class BaseCalendarService implements CalendarService, StorageUse
 					{
 						Calendar calendarObj = getCalendar(m_aliasService.getTarget(context));
 						context = calendarObj.getContext();
+						// if context still isn't valid, then no valid alias or site was specified
+						if (!m_siteService.siteExists(context))
+						{
+							M_log.warn(".parseEntityReference(): alias doesn't point to a known site: " + context);
+							return false;
+						}
 					}
 					catch (Exception e)
 					{
-                  M_log.warn(".parseEntityReference(): ", e);
-                  return false;
+						M_log.warn(".parseEntityReference(): failed to locate calendar for alias: "+ context);
+						return false;
 					}
 				}
 			}
-
-         // if context still isn't valid, then no valid alias or site was specified
-			if (!m_siteService.siteExists(context))
+			else
 			{
-            M_log.warn(".parseEntityReference() no valid site or alias: " + context);
-            return false;
+				M_log.warn(".parseEntityReference(): no context found.");
+				return false;
 			}
 
 			// build updated reference          
@@ -2286,6 +2322,9 @@ public abstract class BaseCalendarService implements CalendarService, StorageUse
 		 **/
 		public boolean getExportEnabled()
 		{
+			if (m_siteService.isUserSite(m_context)) {
+				return m_serverConfigurationService.getBoolean("ical.myworkspace", false);
+			}
 			String enable = m_properties.getProperty(CalendarService.PROP_ICAL_ENABLE);
 			return Boolean.valueOf(enable);
 		}
@@ -6421,17 +6460,14 @@ public abstract class BaseCalendarService implements CalendarService, StorageUse
 	 * @return Number of events generated in ical object
 	 */
 	protected int generateICal(net.fortuna.ical4j.model.Calendar ical,
-										String calendarReference)
+										List<String> calendarReferences)
 	{
 		int numEvents = 0;
 		
 		// This list will have an entry for every week day that we care about.
 		TimeRange currentTimeRange = getICalTimeRange();
 
-		// Get a list of events.
-		List calList = new ArrayList();
-		calList.add(calendarReference);
-		CalendarEventVector calendarEventVector = getEvents(calList, currentTimeRange);
+		CalendarEventVector calendarEventVector = getEvents(calendarReferences, currentTimeRange);
 		Iterator itEvent = calendarEventVector.iterator();
 
 		// Generate XML for all the events.
@@ -6861,7 +6897,7 @@ public abstract class BaseCalendarService implements CalendarService, StorageUse
 		return calendarReferenceList;
 	}
 
-	protected void printICalSchedule(String calRef, OutputStream os) 
+	protected void printICalSchedule(List<String> calRefs, OutputStream os) 
 		throws PermissionException
 	{
 		// generate iCal text file 
@@ -6875,7 +6911,7 @@ public abstract class BaseCalendarService implements CalendarService, StorageUse
 		ical.getComponents().add(registry.getTimeZone(tzId.getValue()).getVTimeZone());
 		
 		CalendarOutputter icalOut = new CalendarOutputter();
-		int numEvents = generateICal(ical, calRef);
+		int numEvents = generateICal(ical, calRefs);
 			
 		try 
 		{

@@ -19,7 +19,7 @@
  *
  **********************************************************************************/
 
-package org.sakaiproject.util;
+package org.sakaiproject.calendar.util;
 
 import java.text.DateFormat;
 import java.util.TimeZone;
