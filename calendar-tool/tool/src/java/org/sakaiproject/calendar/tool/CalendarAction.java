@@ -64,6 +64,10 @@ import org.sakaiproject.calendar.api.RecurrenceRule;
 import org.sakaiproject.calendar.cover.CalendarImporterService;
 import org.sakaiproject.calendar.cover.CalendarService;
 import org.sakaiproject.calendar.cover.ExternalCalendarSubscriptionService;
+import org.sakaiproject.calendar.util.CalendarChannelReferenceMaker;
+import org.sakaiproject.calendar.util.CalendarReferenceToChannelConverter;
+import org.sakaiproject.calendar.util.CalendarUtil;
+import org.sakaiproject.calendar.util.CalendarEntryProvider;
 import org.sakaiproject.cheftool.Context;
 import org.sakaiproject.cheftool.JetspeedRunData;
 import org.sakaiproject.cheftool.RunData;
@@ -100,9 +104,6 @@ import org.sakaiproject.tool.cover.SessionManager;
 import org.sakaiproject.tool.cover.ToolManager;
 import org.sakaiproject.user.api.UserNotDefinedException;
 import org.sakaiproject.user.cover.UserDirectoryService;
-import org.sakaiproject.util.CalendarChannelReferenceMaker;
-import org.sakaiproject.util.CalendarReferenceToChannelConverter;
-import org.sakaiproject.util.CalendarUtil;
 import org.sakaiproject.util.EntryProvider;
 import org.sakaiproject.util.FileItem;
 import org.sakaiproject.util.FormattedText;
@@ -941,7 +942,7 @@ extends VelocityPortletStateAction
 		
 		return TimeService.newTimeRange(startTime,endTime,true,true);
 	}
-
+	
 	/**
 	 * This class controls the page that allows the user to customize which
 	 * calendars will be merged with the current group.
@@ -972,7 +973,7 @@ extends VelocityPortletStateAction
 			MergedList calendarList = 
 				loadChannels( state.getPrimaryCalendarReference(), 
 								  portlet.getPortletConfig().getInitParameter(PORTLET_CONFIG_PARM_MERGED_CALENDARS),
-								  new EntryProvider() );
+								  new CalendarEntryProvider(CalendarService.getInstance()) );
 		
 			// Place this object in the context so that the velocity template
 			// can get at it.
@@ -2257,7 +2258,7 @@ extends VelocityPortletStateAction
 		// Figure out the list of channel references that we'll be using.
 		// MyWorkspace is special: if not superuser, and not otherwise defined, get all channels
 		if ( isOnWorkspaceTab()	 && !SecurityService.isSuperUser() && initMergeList == null )
-			 channelArray = mergedCalendarList.getAllPermittedChannels(new CalendarChannelReferenceMaker());
+			 channelArray = mergedCalendarList.getAllPermittedChannels(new CalendarChannelReferenceMaker(CalendarService.getInstance()));
 		else
 			channelArray = mergedCalendarList.getChannelReferenceArrayFromDelimitedString(
 												primaryCalendarReference, initMergeList );
@@ -2265,10 +2266,10 @@ extends VelocityPortletStateAction
 		if (entryProvider == null )
 		{
 			entryProvider = new MergedListEntryProviderFixedListWrapper(
-										  new EntryProvider(), 
+										  new CalendarEntryProvider(CalendarService.getInstance()), 
 										  primaryCalendarReference,
 										  channelArray,
-										  new CalendarReferenceToChannelConverter());
+										  new CalendarReferenceToChannelConverter(CalendarService.getInstance()));
 		}
 
 		mergedCalendarList.loadChannelsFromDelimitedString(
@@ -3444,13 +3445,10 @@ extends VelocityPortletStateAction
 				calendarObj = CalendarService.getCalendar(calId);
 				allowed = calendarObj.allowAddEvent();
 				
-				CalendarEventVectorObj =
-				CalendarService.getEvents(
-				getCalendarReferenceList(
-				portlet,
-				state.getPrimaryCalendarReference(),
-				isOnWorkspaceTab()),
-				getDayTimeRange(year, month, day));
+				CalendarEventVectorObj = CalendarService.getEvents(
+						getCalendarReferenceList(portlet, state.getPrimaryCalendarReference(), isOnWorkspaceTab()),
+						getDayTimeRange(year, month, day)
+						);
 				
 				String currentPage = state.getCurrentPage();
 				
@@ -3984,7 +3982,7 @@ extends VelocityPortletStateAction
 			+ CalendarService.calendarICalReference(calendarRef);
 		context.put("icalUrl", icalUrl );
 		
-		boolean exportAllowed = CalendarPermissions.allowImport(	calId );
+		boolean exportAllowed = !SiteService.isUserSite(calendarObj.getContext()) && CalendarPermissions.allowImport( calId );
 		context.put("allow_export", String.valueOf(exportAllowed) );
 		
 		boolean exportEnabled = CalendarService.getExportEnabled(calId);

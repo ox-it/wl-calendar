@@ -3,7 +3,7 @@
  * $Id$
  ***********************************************************************************
  *
- * Copyright (c) 2003, 2004, 2005, 2006, 2008, 2009 The Sakai Foundation
+ * Copyright (c) 2003, 2004, 2005, 2006, 2008 The Sakai Foundation
  *
  * Licensed under the Educational Community License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,31 +18,36 @@
  * limitations under the License.
  *
  **********************************************************************************/
+package org.sakaiproject.calendar.util;
 
-package org.sakaiproject.util;
-
-import org.sakaiproject.calendar.cover.CalendarService;
+import org.sakaiproject.calendar.api.CalendarService;
 import org.sakaiproject.exception.IdUnusedException;
 import org.sakaiproject.exception.PermissionException;
+import org.sakaiproject.util.MergedListEntryProviderFixedListWrapper;
 
 /**
  * Used by callback to convert channel references to channels.
  */
-public final class CalendarReferenceToChannelConverter implements MergedListEntryProviderFixedListWrapper.ReferenceToChannelConverter
+public class CalendarReferenceToChannelConverter implements MergedListEntryProviderFixedListWrapper.ReferenceToChannelConverter
 {
-    public Object getChannel(String channelReference)
-    {
-        try
-        {
-            return CalendarService.getCalendar(channelReference); 
-        }
-        catch (IdUnusedException e)
-        {
-            return null;
-        }
-        catch (PermissionException e)
-        {
-            return null;
-        }
-    }
-}
+	private CalendarService calendarService;
+	
+	public CalendarReferenceToChannelConverter(CalendarService calendarService) {
+		this.calendarService = calendarService;
+	}
+	  public Object getChannel(String channelReference)
+	  {
+			try
+			{
+				 return calendarService.getCalendar(channelReference); 
+			}
+			catch (IdUnusedException e)
+			{
+				 return null;
+			}
+			catch (PermissionException e)
+			{
+				 return null;
+			}
+	  }
+ }

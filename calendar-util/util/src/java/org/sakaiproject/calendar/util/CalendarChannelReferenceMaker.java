@@ -3,7 +3,7 @@
  * $Id$
  ***********************************************************************************
  *
- * Copyright (c) 2003, 2004, 2005, 2006, 2008, 2009 The Sakai Foundation
+ * Copyright (c) 2003, 2004, 2005, 2006, 2008 The Sakai Foundation
  *
  * Licensed under the Educational Community License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,18 +19,24 @@
  *
  **********************************************************************************/
 
-package org.sakaiproject.util;
+package org.sakaiproject.calendar.util;
 
-import org.sakaiproject.calendar.cover.CalendarService;
-import org.sakaiproject.site.cover.SiteService;
+import org.sakaiproject.calendar.api.CalendarService;
+import org.sakaiproject.site.api.SiteService;
+import org.sakaiproject.util.MergedList;
 
-/**
- * Callback class so that we can form references in a generic way.
- */
-public final class CalendarChannelReferenceMaker implements MergedList.ChannelReferenceMaker
+
+public class CalendarChannelReferenceMaker implements MergedList.ChannelReferenceMaker
 {
-    public String makeReference(String siteId)
-    {
-        return CalendarService.calendarReference(siteId, SiteService.MAIN_CONTAINER);
-    }
+	private CalendarService	calendarService;
+
+	public CalendarChannelReferenceMaker(CalendarService calendarService)
+	{
+		this.calendarService = calendarService;
+	}
+
+	public String makeReference(String siteId)
+	{
+		return calendarService.calendarReference(siteId, SiteService.MAIN_CONTAINER);
+	}
 }
