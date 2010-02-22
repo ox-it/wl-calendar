@@ -102,7 +102,7 @@ import org.sakaiproject.calendar.cover.ExternalCalendarSubscriptionService;
 import org.sakaiproject.calendar.util.CalendarChannelReferenceMaker;
 import org.sakaiproject.calendar.util.CalendarReferenceToChannelConverter;
 import org.sakaiproject.calendar.util.CalendarUtil;
-import org.sakaiproject.calendar.util.EntryProvider;
+import org.sakaiproject.calendar.util.CalendarEntryProvider;
 import org.sakaiproject.component.api.ServerConfigurationService;
 import org.sakaiproject.component.cover.ComponentManager;
 import org.sakaiproject.content.api.ContentHostingService;
@@ -1242,7 +1242,7 @@ public abstract class BaseCalendarService implements CalendarService, StorageUse
 							MergedList mergedCalendarList = new MergedList();
 							String[] channelArray = mergedCalendarList.getAllPermittedChannels(new CalendarChannelReferenceMaker(BaseCalendarService.this));
 							MergedList.EntryProvider entryProvider = new MergedListEntryProviderFixedListWrapper(
-									new EntryProvider(BaseCalendarService.this), 
+									new CalendarEntryProvider(BaseCalendarService.this), 
 									calRef,
 									channelArray,
 									new CalendarReferenceToChannelConverter(BaseCalendarService.this));

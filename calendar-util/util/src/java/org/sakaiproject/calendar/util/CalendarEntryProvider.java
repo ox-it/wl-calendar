@@ -28,11 +28,11 @@ import org.sakaiproject.exception.PermissionException;
 import org.sakaiproject.site.cover.SiteService;
 import org.sakaiproject.util.MergedListEntryProviderBase;
 
-public class EntryProvider extends MergedListEntryProviderBase
+public class CalendarEntryProvider extends MergedListEntryProviderBase
 {
 	private CalendarService calendarService;
 	
-	public EntryProvider(CalendarService calendarService)
+	public CalendarEntryProvider(CalendarService calendarService)
 	{
 		this.calendarService = calendarService;
 	}

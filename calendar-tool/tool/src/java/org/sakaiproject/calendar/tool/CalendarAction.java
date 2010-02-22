@@ -64,7 +64,7 @@ import org.sakaiproject.calendar.cover.ExternalCalendarSubscriptionService;
 import org.sakaiproject.calendar.util.CalendarChannelReferenceMaker;
 import org.sakaiproject.calendar.util.CalendarReferenceToChannelConverter;
 import org.sakaiproject.calendar.util.CalendarUtil;
-import org.sakaiproject.calendar.util.EntryProvider;
+import org.sakaiproject.calendar.util.CalendarEntryProvider;
 import org.sakaiproject.cheftool.Context;
 import org.sakaiproject.cheftool.JetspeedRunData;
 import org.sakaiproject.cheftool.RunData;
@@ -963,7 +963,7 @@ extends VelocityPortletStateAction
 			MergedList calendarList = 
 				loadChannels( state.getPrimaryCalendarReference(), 
 								  portlet.getPortletConfig().getInitParameter(PORTLET_CONFIG_PARM_MERGED_CALENDARS),
-								  new EntryProvider(CalendarService.getInstance()) );
+								  new CalendarEntryProvider(CalendarService.getInstance()) );
 		
 			// Place this object in the context so that the velocity template
 			// can get at it.
@@ -2249,7 +2249,7 @@ extends VelocityPortletStateAction
 		if (entryProvider == null )
 		{
 			entryProvider = new MergedListEntryProviderFixedListWrapper(
-										  new EntryProvider(CalendarService.getInstance()), 
+										  new CalendarEntryProvider(CalendarService.getInstance()), 
 										  primaryCalendarReference,
 										  channelArray,
 										  new CalendarReferenceToChannelConverter(CalendarService.getInstance()));
