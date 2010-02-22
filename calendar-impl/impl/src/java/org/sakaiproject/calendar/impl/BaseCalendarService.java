@@ -1242,10 +1242,10 @@ public abstract class BaseCalendarService implements CalendarService, StorageUse
 							MergedList mergedCalendarList = new MergedList();
 							String[] channelArray = mergedCalendarList.getAllPermittedChannels(new CalendarChannelReferenceMaker(BaseCalendarService.this));
 							MergedList.EntryProvider entryProvider = new MergedListEntryProviderFixedListWrapper(
-									  new EntryProvider(BaseCalendarService.this), 
-									  calRef,
-									  channelArray,
-									  new CalendarReferenceToChannelConverter(BaseCalendarService.this));
+									new EntryProvider(BaseCalendarService.this), 
+									calRef,
+									channelArray,
+									new CalendarReferenceToChannelConverter(BaseCalendarService.this));
 							mergedCalendarList.loadChannelsFromDelimitedString(
 									true,
 									false,
