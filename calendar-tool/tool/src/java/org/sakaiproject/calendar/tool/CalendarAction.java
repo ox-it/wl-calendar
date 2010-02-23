@@ -61,6 +61,10 @@ import org.sakaiproject.calendar.api.RecurrenceRule;
 import org.sakaiproject.calendar.cover.CalendarImporterService;
 import org.sakaiproject.calendar.cover.CalendarService;
 import org.sakaiproject.calendar.cover.ExternalCalendarSubscriptionService;
+import org.sakaiproject.calendar.util.CalendarChannelReferenceMaker;
+import org.sakaiproject.calendar.util.CalendarReferenceToChannelConverter;
+import org.sakaiproject.calendar.util.CalendarUtil;
+import org.sakaiproject.calendar.util.CalendarEntryProvider;
 import org.sakaiproject.cheftool.Context;
 import org.sakaiproject.cheftool.JetspeedRunData;
 import org.sakaiproject.cheftool.RunData;
@@ -76,7 +80,6 @@ import org.sakaiproject.content.api.FilePickerHelper;
 import org.sakaiproject.content.api.ContentHostingService;
 import org.sakaiproject.content.cover.ContentTypeImageService;
 import org.sakaiproject.entity.api.Reference;
-import org.sakaiproject.entity.api.ResourceProperties;
 import org.sakaiproject.entity.cover.EntityManager;
 import org.sakaiproject.event.api.SessionState;
 import org.sakaiproject.exception.IdInvalidException;
@@ -98,11 +101,9 @@ import org.sakaiproject.tool.cover.SessionManager;
 import org.sakaiproject.tool.cover.ToolManager;
 import org.sakaiproject.user.api.UserNotDefinedException;
 import org.sakaiproject.user.cover.UserDirectoryService;
-import org.sakaiproject.util.CalendarUtil;
 import org.sakaiproject.util.FileItem;
 import org.sakaiproject.util.FormattedText;
 import org.sakaiproject.util.MergedList;
-import org.sakaiproject.util.MergedListEntryProviderBase;
 import org.sakaiproject.util.MergedListEntryProviderFixedListWrapper;
 import org.sakaiproject.util.ParameterParser;
 import org.sakaiproject.util.ResourceLoader;
@@ -195,39 +196,6 @@ extends VelocityPortletStateAction
 	private ContentHostingService contentHostingService;
    
 	private NumberFormat monthFormat = null;
-	
-	/**
-	 * Used by callback to convert channel references to channels.
-	 */
-	private final class CalendarReferenceToChannelConverter implements MergedListEntryProviderFixedListWrapper.ReferenceToChannelConverter
-	 {
-		  public Object getChannel(String channelReference)
-		  {
-				try
-				{
-					 return CalendarService.getCalendar(channelReference); 
-				}
-				catch (IdUnusedException e)
-				{
-					 return null;
-				}
-				catch (PermissionException e)
-				{
-					 return null;
-				}
-		  }
-	 }
-
-	/*
-	 * Callback class so that we can form references in a generic way.
-	 */
-	private final class CalendarChannelReferenceMaker implements MergedList.ChannelReferenceMaker
-	 {
-		  public String makeReference(String siteId)
-		  {
-			return CalendarService.calendarReference(siteId, SiteService.MAIN_CONTAINER);
-		  }
-	 }
 	
 	/**
 	 * Converts a string that is used to store additional attribute fields to an array of strings.
@@ -966,92 +934,6 @@ extends VelocityPortletStateAction
 	
 	
 	/**
-	 * Provides a list of merged calendars by iterating through all
-	 * available calendars.
-	 */
-	class EntryProvider extends MergedListEntryProviderBase
-	{
-		/* (non-Javadoc)
-		 * @see org.sakaiproject.util.MergedListEntryProviderBase#makeReference(java.lang.String)
-		 */
-		public Object makeObjectFromSiteId(String id)
-		{
-			String calendarReference = CalendarService.calendarReference(id, SiteService.MAIN_CONTAINER);
-			Object calendar = null;
-			
-			if ( calendarReference != null )
-			{
-				 try
-					 {
-					  calendar = CalendarService.getCalendar(calendarReference);
-					 }
-					 catch (IdUnusedException e)
-					 {
-						  // The channel isn't there.
-					 }
-					 catch (PermissionException e)
-					 {
-						  // We can't see the channel
-					 }				 
-			}
-			
-			return calendar;
-		}
-
-		/* (non-Javadoc)
-		 * @see org.chefproject.actions.MergedEntryList.EntryProvider#allowGet(java.lang.Object)
-		 */
-		public boolean allowGet(String ref)
-		{
-			return CalendarService.allowGetCalendar(ref);
-		}
-		
-		/* (non-Javadoc)
-		 * @see org.chefproject.actions.MergedEntryList.EntryProvider#getContext(java.lang.Object)
-		 */
-		public String getContext(Object obj)
-		{
-			if ( obj == null )
-			{
-				 return "";
-			}
-
-			Calendar calendar = (Calendar)obj;
-			return calendar.getContext();
-		}
-		
-		/* (non-Javadoc)
-		 * @see org.chefproject.actions.MergedEntryList.EntryProvider#getReference(java.lang.Object)
-		 */
-		public String getReference(Object obj)
-		{
-			if ( obj == null )
-			 {
-				 return "";
-			 }
-			
-			 Calendar calendar = (Calendar)obj;
-			return calendar.getReference();
-		}
-		
-		/* (non-Javadoc)
-		 * @see org.chefproject.actions.MergedEntryList.EntryProvider#getProperties(java.lang.Object)
-		 */
-		public ResourceProperties getProperties(Object obj)
-		{
-			if ( obj == null )
-			 {
-				 return null;
-			 }
-
-			Calendar calendar = (Calendar)obj;
-			return calendar.getProperties();
-		}
-	}
-	
-
-
-	/**
 	 * This class controls the page that allows the user to customize which
 	 * calendars will be merged with the current group.
 	 */
@@ -1081,7 +963,7 @@ extends VelocityPortletStateAction
 			MergedList calendarList = 
 				loadChannels( state.getPrimaryCalendarReference(), 
 								  portlet.getPortletConfig().getInitParameter(PORTLET_CONFIG_PARM_MERGED_CALENDARS),
-								  new EntryProvider() );
+								  new CalendarEntryProvider(CalendarService.getInstance()) );
 		
 			// Place this object in the context so that the velocity template
 			// can get at it.
@@ -2359,7 +2241,7 @@ extends VelocityPortletStateAction
 		// Figure out the list of channel references that we'll be using.
 		// MyWorkspace is special: if not superuser, and not otherwise defined, get all channels
 		if ( isOnWorkspaceTab()	 && !SecurityService.isSuperUser() && initMergeList == null )
-			 channelArray = mergedCalendarList.getAllPermittedChannels(new CalendarChannelReferenceMaker());
+			 channelArray = mergedCalendarList.getAllPermittedChannels(new CalendarChannelReferenceMaker(CalendarService.getInstance()));
 		else
 			channelArray = mergedCalendarList.getChannelReferenceArrayFromDelimitedString(
 												primaryCalendarReference, initMergeList );
@@ -2367,10 +2249,10 @@ extends VelocityPortletStateAction
 		if (entryProvider == null )
 		{
 			entryProvider = new MergedListEntryProviderFixedListWrapper(
-										  new EntryProvider(), 
+										  new CalendarEntryProvider(CalendarService.getInstance()), 
 										  primaryCalendarReference,
 										  channelArray,
-										  new CalendarReferenceToChannelConverter());
+										  new CalendarReferenceToChannelConverter(CalendarService.getInstance()));
 		}
 
 		mergedCalendarList.loadChannelsFromDelimitedString(
@@ -3539,13 +3421,10 @@ extends VelocityPortletStateAction
 				calendarObj = CalendarService.getCalendar(calId);
 				allowed = calendarObj.allowAddEvent();
 				
-				CalendarEventVectorObj =
-				CalendarService.getEvents(
-				getCalendarReferenceList(
-				portlet,
-				state.getPrimaryCalendarReference(),
-				isOnWorkspaceTab()),
-				getDayTimeRange(year, month, day));
+				CalendarEventVectorObj = CalendarService.getEvents(
+						getCalendarReferenceList(portlet, state.getPrimaryCalendarReference(), isOnWorkspaceTab()),
+						getDayTimeRange(year, month, day)
+						);
 				
 				String currentPage = state.getCurrentPage();
 				
