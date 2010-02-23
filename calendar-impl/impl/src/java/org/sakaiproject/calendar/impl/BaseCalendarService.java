@@ -1239,6 +1239,10 @@ public abstract class BaseCalendarService implements CalendarService, StorageUse
 						List<String> referenceList = Collections.singletonList(calRef);
 						// If it's a MyWorkspace feed get all the site this user is a member of.
 						if (m_siteService.isUserSite(ref.getContext())){
+							// Make sure the current user can access this calendar first.
+							if (!allowGetCalendar(calRef)) {
+								throw new EntityPermissionException(SessionManager.getCurrentSessionUserId(), SECURE_READ, calRef);
+							}
 							MergedList mergedCalendarList = new MergedList();
 							String[] channelArray = mergedCalendarList.getAllPermittedChannels(new CalendarChannelReferenceMaker(BaseCalendarService.this));
 							MergedList.EntryProvider entryProvider = new MergedListEntryProviderFixedListWrapper(
