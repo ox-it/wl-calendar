@@ -3967,7 +3967,7 @@ extends VelocityPortletStateAction
 			+ CalendarService.calendarICalReference(calendarRef);
 		context.put("icalUrl", icalUrl );
 		
-		boolean exportAllowed = CalendarPermissions.allowImport(	calId );
+		boolean exportAllowed = !SiteService.isUserSite(calendarObj.getContext()) && CalendarPermissions.allowImport( calId );
 		context.put("allow_export", String.valueOf(exportAllowed) );
 		
 		boolean exportEnabled = CalendarService.getExportEnabled(calId);
