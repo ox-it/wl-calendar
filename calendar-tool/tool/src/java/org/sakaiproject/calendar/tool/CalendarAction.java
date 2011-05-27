@@ -2380,6 +2380,10 @@ extends VelocityPortletStateAction
 		{
 			buildIcalExportPanelContext(portlet, context, runData, state);
 		}
+		else if (stateName.equals("subscribe"))
+		{
+			buildOpaqueUrlPanelContext(portlet, context, runData, state);
+		}
 		else if (stateName.equals("delete"))
 		{
 			// build the context to display the property list
@@ -3981,6 +3985,14 @@ extends VelocityPortletStateAction
 		return template + "_icalexport";
 
 	} // buildIcalExportPanelContext
+
+	/**
+	 * Setup for Opaque URL Export.
+	 */
+	public void buildOpaqueUrlPanelContext(VelocityPortlet portlet, Context context, RunData rundata, CalendarActionState state)
+	{
+		context.put("form-cancel", BUTTON + "doCancel");
+	} // buildOpaqueUrlPanelContext
 	
 	/**
 	 * Build the context for showing delete view
@@ -6938,6 +6950,17 @@ extends VelocityPortletStateAction
 	} // doMerge
 	
 	/**
+	 * Action is used when the user clicks on the 'Subscribe' link:
+	 */
+	public void doSubscribe(RunData data, Context context)
+	{
+		CalendarActionState state = (CalendarActionState)getState(context, data, CalendarActionState.class);
+		state.setPrevState(state.getState());
+		state.setReturnState(state.getState());
+		state.setState("subscribe");
+	}
+	
+	/**
 	 * Handle a request to set options.
 	 */
 	public void doCustomize(RunData runData, Context context)
@@ -7535,6 +7558,12 @@ extends VelocityPortletStateAction
 			{
 				bar.add( new MenuEntry(rb.getString("java.subscriptions"), null, allow_subscribe, MenuItem.CHECKED_NA, "doSubscriptions") );
 			}
+		
+		// A link for subscribing to the implicit calendar
+		if ( ServerConfigurationService.getBoolean("ical.opaqueurl.export",false) )
+		{
+			bar.add( new MenuEntry(rb.getString("java.subscribe"), null, allow_new, MenuItem.CHECKED_NA, "doSubscribe") );
+		}
 		
 		//2nd menu bar for the PDF print only
 		Menu bar_print = new MenuImpl(portlet, runData, "CalendarAction");

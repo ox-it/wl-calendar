@@ -128,5 +128,7 @@ calendar Portlet
 		#parse("/vm/calendar/chef_calendar-merge.vm")
 #elseif ($message=='setFrequency')
         #parse("/vm/calendar/chef_calendar_setFrequency.vm")
+#elseif ($message=='subscribe')
+        #parse("/vm/calendar/chef_calendar-subscribe.vm")
 #end
 
