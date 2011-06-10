@@ -98,6 +98,9 @@ public interface CalendarService
 	/** The Reference type for a external calendar subscription. */
 	public static final String REF_TYPE_CALENDAR_SUBSCRIPTION = "subscription";
 
+	/** The Reference type for an "Opaque URL" URL. */
+	public static final String REF_TYPE_CALENDAR_OPAQUEURL = "opaq";
+	
 	/** Calendar property to enable ical export */
 	//(tbd: move to ResourceProperties) 
 	public static final String PROP_ICAL_ENABLE = "ICAL:enable";

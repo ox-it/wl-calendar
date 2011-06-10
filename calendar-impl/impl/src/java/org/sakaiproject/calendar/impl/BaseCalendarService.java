@@ -1186,13 +1186,30 @@ public abstract class BaseCalendarService implements CalendarService, StorageUse
 				
 				// we only access the pdf & ical reference
 				if ( !REF_TYPE_CALENDAR_PDF.equals(ref.getSubType()) &&
-					  !REF_TYPE_CALENDAR_ICAL.equals(ref.getSubType()) ) 
+					  !REF_TYPE_CALENDAR_ICAL.equals(ref.getSubType()) &&
+					  !REF_TYPE_CALENDAR_OPAQUEURL.equals(ref.getSubType())) 
 						throw new EntityNotDefinedException(ref.getReference());
 
 				// check if ical export is enabled
-				if ( REF_TYPE_CALENDAR_ICAL.equals(ref.getSubType()) &&
+				if ( (REF_TYPE_CALENDAR_ICAL.equals(ref.getSubType()) || REF_TYPE_CALENDAR_OPAQUEURL.equals(ref.getSubType())) &&
 					  !getExportEnabled(calRef) )
 						throw new EntityNotDefinedException(ref.getReference());
+				
+				if ( REF_TYPE_CALENDAR_OPAQUEURL.equals(ref.getSubType()))
+				{
+					String opaqueGuid = extractOpaqueGuid(ref);
+					/*
+					 * NOTES: {WL-1398} Work-in-progress:
+					 * - at this point we can demonstrate that we could get the
+					 * userID from the 'opaqueGuidToContextMap' (context & user
+					 * IDs are one and the same for MyWorkspace). We could thus
+					 * log the user in (and out) around the iCal export "method"
+					 * within a try-catch-finally block. However, we are not
+					 * going to attempt that before refactoring (extract method)
+					 * the iCal export functionality into a single distinct
+					 * method. This is what will be in the next commit!
+					 */
+				}
 
 				try
 				{
@@ -1344,10 +1361,18 @@ public abstract class BaseCalendarService implements CalendarService, StorageUse
 			if (parts.length > 2)
 			{
 				subType = parts[2];
+				
+				// Opaque URLs put the opaque GUID where the context ID would normally be:
+				if (REF_TYPE_CALENDAR_OPAQUEURL.equals(subType) && parts.length > 3)
+				{
+					parts[3] = mapOpaqueGuidToContextId(ref, parts[3]);
+				}
+				
 				if (REF_TYPE_CALENDAR.equals(subType) || 
 						 REF_TYPE_CALENDAR_PDF.equals(subType) || 
 						 REF_TYPE_CALENDAR_ICAL.equals(subType) ||
-						 REF_TYPE_CALENDAR_SUBSCRIPTION.equals(subType))
+						 REF_TYPE_CALENDAR_SUBSCRIPTION.equals(subType) ||
+						 REF_TYPE_CALENDAR_OPAQUEURL.equals(subType))
 				{
 					// next is the context id
 					if (parts.length > 3)
@@ -1411,6 +1436,38 @@ public abstract class BaseCalendarService implements CalendarService, StorageUse
 		}
 
 		return false;
+	}
+	
+	// TEMP: {WL-1398} 'Proof-of-concept' mock placeholders. --->>>
+	private static Map<String,String> opaqueGuidToContextMap = new HashMap<String,String>();
+	static
+	{
+		opaqueGuidToContextMap.put("XXXX-test01-XXXX", "~ec20633a-6e8b-4f3d-b500-419d653a8da2");
+		opaqueGuidToContextMap.put("XXXX-test02-XXXX", "~9c375f4b-7fdf-4937-85a0-9f6b5f1a9f98");
+		opaqueGuidToContextMap.put("XXXX-test03-XXXX", "~e9f64967-783f-4b43-ab09-a8507e160d56");
+	}
+	// <<<--- TEMP: {WL-1398} 'Proof-of-concept' mock placeholders:
+	
+	protected String mapOpaqueGuidToContextId(Reference reference, String opaqueGuid)
+	{
+		String contextId = null;
+		// Look up the context matching the 'opaqueGuid'
+		// TEMP: Go via persistence layer 'for real':
+		contextId = opaqueGuidToContextMap.get(opaqueGuid); 
+		
+		// i.e. if null, should have no mapping and quickly fail!
+		return (contextId != null) ? contextId : "XXXX-XXXX-XXXX";
+	}
+	
+	protected String extractOpaqueGuid(Reference reference) throws EntityNotDefinedException
+	{
+		// subType at [2], opaqueGuid [3]:
+		String[] parts = StringUtil.split(reference.getReference(), Entity.SEPARATOR);
+		if (parts.length < 4 || !REF_TYPE_CALENDAR_OPAQUEURL.equals(parts[2]))
+		{
+			throw new EntityNotDefinedException(reference.getReference());
+		}
+		return parts[3];
 	}
 
 	/**
