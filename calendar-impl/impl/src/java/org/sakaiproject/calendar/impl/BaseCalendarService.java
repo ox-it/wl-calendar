@@ -23,6 +23,7 @@ package org.sakaiproject.calendar.impl;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.URI;
@@ -1195,150 +1196,18 @@ public abstract class BaseCalendarService implements CalendarService, StorageUse
 					  !getExportEnabled(calRef) )
 						throw new EntityNotDefinedException(ref.getReference());
 				
-				if ( REF_TYPE_CALENDAR_OPAQUEURL.equals(ref.getSubType()))
+				if (REF_TYPE_CALENDAR_PDF.equals(ref.getSubType()))
 				{
-					String opaqueGuid = extractOpaqueGuid(ref);
-					/*
-					 * NOTES: {WL-1398} Work-in-progress:
-					 * - at this point we can demonstrate that we could get the
-					 * userID from the 'opaqueGuidToContextMap' (context & user
-					 * IDs are one and the same for MyWorkspace). We could thus
-					 * log the user in (and out) around the iCal export "method"
-					 * within a try-catch-finally block. However, we are not
-					 * going to attempt that before refactoring (extract method)
-					 * the iCal export functionality into a single distinct
-					 * method. This is what will be in the next commit!
-					 */
+					handleAccessPdf(req, res, ref, calRef);
 				}
-
-				try
+				else if (REF_TYPE_CALENDAR_ICAL.equals(ref.getSubType()))
 				{
-					Properties options = new Properties();
-					Enumeration e = req.getParameterNames();
-					while (e.hasMoreElements())
-					{
-						String key = (String) e.nextElement();
-						String[] values = req.getParameterValues(key);
-						if (values.length == 1)
-						{
-							options.put(key, values[0]);
-						}
-						else
-						{
-							StringBuilder buf = new StringBuilder();
-							for (int i = 0; i < values.length; i++)
-							{
-								buf.append(values[i] + "^");
-							}
-							options.put(key, buf.toString());
-						}
-					}
-
-					// We need to write to a temporary stream for better speed, plus
-					// so we can get a byte count. Internet Explorer has problems
-					// if we don't make the setContentLength() call.
-					ByteArrayOutputStream outByteStream = new ByteArrayOutputStream();
-
-					//	 Check if PDF document requested
-					if ( REF_TYPE_CALENDAR_PDF.equals(ref.getSubType()) )
-					{
-						res.addHeader("Content-Disposition", "inline; filename=\"schedule.pdf\"");
-						res.setContentType(PDF_MIME_TYPE);
-						printSchedule(options, outByteStream);
-					}
-					else
-					{
-						// Extract the alias name to use for the filename.
-						List alias =  m_aliasService.getAliases(calRef);
-						String aliasName = "schedule.ics";
-						if ( ! alias.isEmpty() )
-							aliasName =  ((Alias)alias.get(0)).getId();
-
-						// Get the list of calendars to feed out.
-						List<String> referenceList = Collections.singletonList(calRef);
-						// If it's a MyWorkspace feed get all the site this user is a member of.
-						if (m_siteService.isUserSite(ref.getContext())){
-							// Make sure the current user can access this calendar first.
-							if (!allowGetCalendar(calRef)) {
-								throw new EntityPermissionException(SessionManager.getCurrentSessionUserId(), SECURE_READ, calRef);
-							}
-							MergedList mergedCalendarList = new MergedList();
-							String[] channelArray = mergedCalendarList.getAllPermittedChannels(new CalendarChannelReferenceMaker(BaseCalendarService.this));
-							MergedList.EntryProvider entryProvider = new MergedListEntryProviderFixedListWrapper(
-									new CalendarEntryProvider(BaseCalendarService.this), 
-									calRef,
-									channelArray,
-									new CalendarReferenceToChannelConverter(BaseCalendarService.this));
-							mergedCalendarList.loadChannelsFromDelimitedString(
-									true,
-									false,
-									entryProvider,
-									StringUtil.trimToZero(SessionManager.getCurrentSessionUserId()),
-									channelArray, 
-									false,
-									ref.getContext());
-							referenceList = mergedCalendarList.getReferenceList();
-						}
-						Time modDate = TimeService.newTime(0);
-						// update date/time reference
-						for (String curCalRef: referenceList)
-						{
-							Time curModDate = findCalendar(curCalRef).getModified();
-							if ( curModDate != null && curModDate.after(modDate))
-							{
-								modDate = curModDate;
-							}
-						}
-						res.addHeader("Content-Disposition", "inline; filename=\"" + aliasName + "\"");
-						res.setContentType(ICAL_MIME_TYPE);
-						res.setDateHeader("Last-Modified", modDate.getTime() );
-						
-						printICalSchedule(referenceList, res.getOutputStream());
-					}
-					
-					res.setContentLength(outByteStream.size());
-					if (outByteStream.size() > 0)
-					{
-						// Increase the buffer size for more speed.
-						res.setBufferSize(outByteStream.size());
-					}
-
-					OutputStream out = null;
-					try
-					{
-						out = res.getOutputStream();
-						if (outByteStream.size() > 0)
-						{
-							outByteStream.writeTo(out);
-						}
-						out.flush();
-						out.close();
-					}
-					catch (Throwable ignore)
-					{
-					}
-					finally
-					{
-						if (out != null)
-						{
-							try
-							{
-								out.close();
-							}
-							catch (Throwable ignore)
-							{
-							}
-						}
-					}
+					handleAccessIcal(res, ref, calRef);
 				}
-				catch (EntityPermissionException epe)
+				else if (REF_TYPE_CALENDAR_OPAQUEURL.equals(ref.getSubType()))
 				{
-					throw epe;
-				}
-				catch (Throwable t)
-				{
-					throw new EntityNotDefinedException(ref.getReference());
-				}
+					handleAccessOpaqueUrl(res, ref, calRef);
+				}				
 			}
 		};
 	}
@@ -7308,6 +7177,195 @@ public abstract class BaseCalendarService implements CalendarService, StorageUse
 			M_log.info("importSiteClean: End removing Calendar data" + e);
 		}
 	}
+
+	protected void handleAccessPdf(HttpServletRequest req,
+			HttpServletResponse res, Reference ref, String calRef)
+			throws EntityPermissionException, EntityNotDefinedException {
+		try
+		{
+			Properties options = new Properties();
+			Enumeration e = req.getParameterNames();
+			while (e.hasMoreElements())
+			{
+				String key = (String) e.nextElement();
+				String[] values = req.getParameterValues(key);
+				if (values.length == 1)
+				{
+					options.put(key, values[0]);
+				}
+				else
+				{
+					StringBuilder buf = new StringBuilder();
+					for (int i = 0; i < values.length; i++)
+					{
+						buf.append(values[i] + "^");
+					}
+					options.put(key, buf.toString());
+				}
+			}
+
+			// We need to write to a temporary stream for better speed, plus
+			// so we can get a byte count. Internet Explorer has problems
+			// if we don't make the setContentLength() call.
+			ByteArrayOutputStream outByteStream = new ByteArrayOutputStream();
+			res.addHeader("Content-Disposition", "inline; filename=\"schedule.pdf\"");
+			res.setContentType(PDF_MIME_TYPE);
+			printSchedule(options, outByteStream);
+			res.setContentLength(outByteStream.size());
+			
+			if (outByteStream.size() > 0)
+			{
+				// Increase the buffer size for more speed.
+				res.setBufferSize(outByteStream.size());
+			}
+
+			OutputStream out = null;
+			try
+			{
+				out = res.getOutputStream();
+				if (outByteStream.size() > 0)
+				{
+					outByteStream.writeTo(out);
+				}
+				out.flush();
+				out.close();
+			}
+			catch (Throwable ignore)
+			{
+			}
+			finally
+			{
+				if (out != null)
+				{
+					try
+					{
+						out.close();
+					}
+					catch (Throwable ignore)
+					{
+					}
+				}
+			}
+		}
+		catch (Throwable t)
+		{
+			throw new EntityNotDefinedException(ref.getReference());
+		}
+	}
+	
+	protected void handleAccessIcalCommon(
+			HttpServletResponse res, Reference ref, String calRef)
+			throws EntityPermissionException, PermissionException, IOException {
+		// Extract the alias name to use for the filename.
+		List alias =  m_aliasService.getAliases(calRef);
+		String aliasName = "schedule.ics";
+		if ( ! alias.isEmpty() )
+			aliasName =  ((Alias)alias.get(0)).getId();
+
+		// Get the list of calendars to feed out.
+		List<String> referenceList = Collections.singletonList(calRef);
+		// If it's a MyWorkspace feed get all the site this user is a member of.
+		if (m_siteService.isUserSite(ref.getContext())){
+			// Make sure the current user can access this calendar first.
+			if (!allowGetCalendar(calRef)) {
+				throw new EntityPermissionException(SessionManager.getCurrentSessionUserId(), SECURE_READ, calRef);
+			}
+			MergedList mergedCalendarList = new MergedList();
+			String[] channelArray = mergedCalendarList.getAllPermittedChannels(new CalendarChannelReferenceMaker(BaseCalendarService.this));
+			MergedList.EntryProvider entryProvider = new MergedListEntryProviderFixedListWrapper(
+					new CalendarEntryProvider(BaseCalendarService.this), 
+					calRef,
+					channelArray,
+					new CalendarReferenceToChannelConverter(BaseCalendarService.this));
+			mergedCalendarList.loadChannelsFromDelimitedString(
+					true,
+					false,
+					entryProvider,
+					StringUtil.trimToZero(SessionManager.getCurrentSessionUserId()),
+					channelArray, 
+					false,
+					ref.getContext());
+			referenceList = mergedCalendarList.getReferenceList();
+		}
+		Time modDate = TimeService.newTime(0);
+		// update date/time reference
+		for (String curCalRef: referenceList)
+		{
+			Time curModDate = findCalendar(curCalRef).getModified();
+			if ( curModDate != null && curModDate.after(modDate))
+			{
+				modDate = curModDate;
+			}
+		}
+		res.addHeader("Content-Disposition", "inline; filename=\"" + aliasName + "\"");
+		res.setContentType(ICAL_MIME_TYPE);
+		res.setDateHeader("Last-Modified", modDate.getTime() );
+		
+		printICalSchedule(referenceList, res.getOutputStream());
+	}
+	
+	protected void handleAccessIcal(
+			HttpServletResponse res, Reference ref, String calRef)
+			throws EntityPermissionException, EntityNotDefinedException {
+		try
+		{
+			handleAccessIcalCommon(res, ref, calRef);
+
+			OutputStream out = null;
+			try
+			{
+				out = res.getOutputStream();
+				out.flush();
+				out.close();
+			}
+			catch (Throwable ignore)
+			{
+			}
+			finally
+			{
+				if (out != null)
+				{
+					try
+					{
+						out.close();
+					}
+					catch (Throwable ignore)
+					{
+					}
+				}
+			}
+		}
+		catch (EntityPermissionException epe)
+		{
+			throw epe;
+		}
+		catch (Throwable t)
+		{
+			throw new EntityNotDefinedException(ref.getReference());
+		}
+	}
+	
+	protected void handleAccessOpaqueUrl(
+			HttpServletResponse res, Reference ref, String calRef)
+			throws EntityPermissionException, EntityNotDefinedException {
+		try 
+		{
+			//Note: Placeholder implementation for now.
+			handleAccessIcalCommon(res, ref, calRef);
+		} 
+		catch (PermissionException e) 
+		{
+		}
+		catch (IOException e) 
+		{
+		}
+		catch (Throwable t)
+		{
+			throw new EntityNotDefinedException(ref.getReference());
+		}
+		
+	}	
+
 
 	/** 
 	 ** Comparator for sorting Group objects
