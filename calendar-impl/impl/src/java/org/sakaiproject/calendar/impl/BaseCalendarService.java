@@ -126,6 +126,7 @@ import org.sakaiproject.entity.api.ResourcePropertiesEdit;
 import org.sakaiproject.event.api.Event;
 import org.sakaiproject.event.api.NotificationService;
 import org.sakaiproject.event.cover.EventTrackingService;
+import org.sakaiproject.event.cover.UsageSessionService;
 import org.sakaiproject.exception.IdInvalidException;
 import org.sakaiproject.exception.IdUnusedException;
 import org.sakaiproject.exception.IdUsedException;
@@ -148,6 +149,7 @@ import org.sakaiproject.tool.api.SessionBindingEvent;
 import org.sakaiproject.tool.api.SessionBindingListener;
 import org.sakaiproject.tool.cover.SessionManager;
 import org.sakaiproject.tool.cover.ToolManager;
+import org.sakaiproject.user.api.Authentication;
 import org.sakaiproject.user.api.UserNotDefinedException;
 import org.sakaiproject.user.cover.UserDirectoryService;
 import org.sakaiproject.util.BaseResourcePropertiesEdit;
@@ -1206,7 +1208,7 @@ public abstract class BaseCalendarService implements CalendarService, StorageUse
 				}
 				else if (REF_TYPE_CALENDAR_OPAQUEURL.equals(ref.getSubType()))
 				{
-					handleAccessOpaqueUrl(res, ref, calRef);
+					handleAccessOpaqueUrl(req, res, ref, calRef);
 				}				
 			}
 		};
@@ -1309,11 +1311,15 @@ public abstract class BaseCalendarService implements CalendarService, StorageUse
 	
 	// TEMP: {WL-1398} 'Proof-of-concept' mock placeholders. --->>>
 	private static Map<String,String> opaqueGuidToContextMap = new HashMap<String,String>();
+	private static Map<String,String> opaqueGuidToUserIdMap = new HashMap<String,String>();
 	static
 	{
 		opaqueGuidToContextMap.put("XXXX-test01-XXXX", "~ec20633a-6e8b-4f3d-b500-419d653a8da2");
 		opaqueGuidToContextMap.put("XXXX-test02-XXXX", "~9c375f4b-7fdf-4937-85a0-9f6b5f1a9f98");
 		opaqueGuidToContextMap.put("XXXX-test03-XXXX", "~e9f64967-783f-4b43-ab09-a8507e160d56");
+		opaqueGuidToUserIdMap.put("XXXX-test01-XXXX", "ec20633a-6e8b-4f3d-b500-419d653a8da2");
+		opaqueGuidToUserIdMap.put("XXXX-test02-XXXX", "9c375f4b-7fdf-4937-85a0-9f6b5f1a9f98");
+		opaqueGuidToUserIdMap.put("XXXX-test03-XXXX", "e9f64967-783f-4b43-ab09-a8507e160d56");
 	}
 	// <<<--- TEMP: {WL-1398} 'Proof-of-concept' mock placeholders:
 	
@@ -7346,26 +7352,47 @@ public abstract class BaseCalendarService implements CalendarService, StorageUse
 	}
 	
 	protected void handleAccessOpaqueUrl(
-			HttpServletResponse res, Reference ref, String calRef)
+			HttpServletRequest request, HttpServletResponse res, Reference ref, String calRef)
 			throws EntityPermissionException, EntityNotDefinedException {
-		try 
+		
+		// Get the user UUID from any opaque GUID within the reference:
+		String opaqueGuid = extractOpaqueGuid(ref);
+		String userId = null;
+		if (opaqueGuid != null)
 		{
-			//Note: Placeholder implementation for now.
-			handleAccessIcalCommon(res, ref, calRef);
-		} 
-		catch (PermissionException e) 
-		{
+			// TODO: Look-up to proper persistent store.
+			userId = opaqueGuidToUserIdMap.get(opaqueGuid);
 		}
-		catch (IOException e) 
+		if (opaqueGuid == null || userId == null)
 		{
-		}
-		catch (Throwable t)
-		{
+			// TODO: Right kind of exception?!
 			throw new EntityNotDefinedException(ref.getReference());
 		}
 		
+		try 
+		{
+			String eid = UserDirectoryService.getUserEid(userId);
+			Authentication authn = new org.sakaiproject.util.Authentication(userId, eid);
+			if (UsageSessionService.login(authn, request))
+			{
+				handleAccessIcalCommon(res, ref, calRef);
+			}
+		} 
+		catch (UserNotDefinedException e) 
+		{
+			M_log.warn("User not found: " + userId);
+		} 
+		catch (PermissionException e) 
+		{
+		} 
+		catch (IOException e) 
+		{
+		}
+		finally
+		{
+			UsageSessionService.logout();
+		}
 	}	
-
 
 	/** 
 	 ** Comparator for sorting Group objects
