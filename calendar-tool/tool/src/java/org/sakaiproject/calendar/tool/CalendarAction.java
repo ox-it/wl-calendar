@@ -2380,9 +2380,13 @@ extends VelocityPortletStateAction
 		{
 			buildIcalExportPanelContext(portlet, context, runData, state);
 		}
-		else if (stateName.equals("subscribe"))
+		else if (stateName.equals("opaqueUrl1"))
 		{
-			buildOpaqueUrlPanelContext(portlet, context, runData, state);
+			buildOpaqueUrl1Context(portlet, context, runData, state);
+		}
+		else if (stateName.equals("opaqueUrl2"))
+		{
+			buildOpaqueUrl2Context(portlet, context, runData, state);
 		}
 		else if (stateName.equals("delete"))
 		{
@@ -3987,12 +3991,20 @@ extends VelocityPortletStateAction
 	} // buildIcalExportPanelContext
 
 	/**
-	 * Setup for Opaque URL Export.
+	 * Setup for Opaque URL Export ("No URL").
 	 */
-	public void buildOpaqueUrlPanelContext(VelocityPortlet portlet, Context context, RunData rundata, CalendarActionState state)
+	protected void buildOpaqueUrl1Context(VelocityPortlet portlet, Context context, RunData rundata, CalendarActionState state)
 	{
 		context.put("form-cancel", BUTTON + "doCancel");
-	} // buildOpaqueUrlPanelContext
+	}
+	
+	/**
+	 * Setup for Opaque URL Export ("URL exists").
+	 */
+	protected void buildOpaqueUrl2Context(VelocityPortlet portlet, Context context, RunData rundata, CalendarActionState state)
+	{
+		context.put("form-cancel", BUTTON + "doCancel");
+	}
 	
 	/**
 	 * Build the context for showing delete view
@@ -6948,16 +6960,19 @@ extends VelocityPortletStateAction
 		
 		calendarSubscriptionsPage.doSubscriptions( runData, context, state, getSessionState(runData));
 	} // doMerge
-	
+
 	/**
 	 * Action is used when the user clicks on the 'Subscribe' link:
 	 */
-	public void doSubscribe(RunData data, Context context)
+	public void doOpaqueUrl(RunData data, Context context)
 	{
 		CalendarActionState state = (CalendarActionState)getState(context, data, CalendarActionState.class);
 		state.setPrevState(state.getState());
 		state.setReturnState(state.getState());
-		state.setState("subscribe");
+		// WL-1398: A value amenable to manipulation in the debugger!
+		boolean someBooleanValue = true;
+		String newState = someBooleanValue ? "opaqueUrl1" : "opaqueUrl2";
+		state.setState(newState);
 	}
 	
 	/**
@@ -7562,7 +7577,7 @@ extends VelocityPortletStateAction
 		// A link for subscribing to the implicit calendar
 		if ( ServerConfigurationService.getBoolean("ical.opaqueurl.export",false) )
 		{
-			bar.add( new MenuEntry(rb.getString("java.subscribe"), null, allow_new, MenuItem.CHECKED_NA, "doSubscribe") );
+			bar.add( new MenuEntry(rb.getString("java.subscribe"), null, allow_new, MenuItem.CHECKED_NA, "doOpaqueUrl") );
 		}
 		
 		//2nd menu bar for the PDF print only

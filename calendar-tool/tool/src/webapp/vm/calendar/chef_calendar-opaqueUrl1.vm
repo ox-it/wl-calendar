@@ -1,8 +1,8 @@
 <div class="portletBody"> 
 	<h3>
-		$tlang.getString('ical.opaqueurl.header')
+		$tlang.getString('ical.opaqueurl1.header')
 	</h3>
-	$tlang.getString('ical.opaqueurl.message')
+	$tlang.getString('ical.opaqueurl1.message')
 	<form action="#toolForm($action)" method="post">
     	<p class="act">
         	<input type="submit" accesskey="x" name="$form-cancel" value="$tlang.getString("gen.back")" />
