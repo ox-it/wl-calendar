@@ -40,6 +40,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TimeZone;
+import java.util.UUID;
 import java.util.Vector;
 import java.util.Properties;
 
@@ -3990,11 +3991,80 @@ extends VelocityPortletStateAction
 
 	} // buildIcalExportPanelContext
 
+	// ---------------- WL-1398: Mock placeholder stuff >>>: -------------------
+	static class MockOpaqueUrl
+	{
+		String userUUID;
+		String calendarRef;
+		String opaqueUUID;
+		MockOpaqueUrl(String userUUID, String calendarRef, String opaqueUUID)
+		{
+			this.userUUID = userUUID;
+			this.calendarRef = calendarRef;
+			this.opaqueUUID = opaqueUUID;
+		}
+		String getUserUUID()
+		{
+			return userUUID;
+		}
+		String getCalendarRef()
+		{
+			return calendarRef;
+		}
+		String getOpaqueUUID()
+		{
+			return opaqueUUID;
+		}
+	}
+	
+	static class MockOpaqueUrlDao
+	{
+		// <List{userUUID, calendarRef}, opaqueUUID>
+		HashMap<List<String>, String> myMap = new HashMap<List<String>, String>();
+		
+		MockOpaqueUrl newOpaqueUrl(String userUUID, String calendarRef)
+		{
+			List<String> list = new Vector<String>();
+			list.add(userUUID);
+			list.add(calendarRef);
+			String opaqueUUID = UUID.randomUUID().toString();
+			myMap.put(list, opaqueUUID);
+			return new MockOpaqueUrl(userUUID, calendarRef, opaqueUUID);
+		}
+		
+		MockOpaqueUrl getOpaqueUrl(String userUUID, String calendarRef)
+		{
+			List<String> list = new Vector<String>();
+			list.add(userUUID);
+			list.add(calendarRef);
+			String opaqueUUID = myMap.get(list);
+			return (opaqueUUID != null) 
+				? new MockOpaqueUrl(list.get(0), list.get(1), opaqueUUID) : null;
+		}
+		
+		void deleteOpaqueUrl(String userUUID, String calendarRef)
+		{
+			List<String> list = new Vector<String>();
+			list.add(userUUID);
+			list.add(calendarRef);
+			myMap.remove(list);
+		}
+		
+		// Note: A 'proper' DAO will probably want the methods below too...
+		//MockOpaqueUrl getOpaqueUrl(String opaqueUUID);
+		//void deleteOpaqueUrl(String opaqueUUID);
+	}
+	
+	static MockOpaqueUrlDao mockOpaqueUrlDao = new MockOpaqueUrlDao();
+	
+	// <<< ------------ WL-1398: Mock placeholder stuff. -----------------------
+	
 	/**
 	 * Setup for Opaque URL Export ("No URL").
 	 */
 	protected void buildOpaqueUrl1Context(VelocityPortlet portlet, Context context, RunData rundata, CalendarActionState state)
 	{
+		context.put("form-generate", BUTTON + "doOpaqueUrlGenerate");
 		context.put("form-cancel", BUTTON + "doCancel");
 	}
 	
@@ -4003,6 +4073,12 @@ extends VelocityPortletStateAction
 	 */
 	protected void buildOpaqueUrl2Context(VelocityPortlet portlet, Context context, RunData rundata, CalendarActionState state)
 	{
+		MockOpaqueUrl opaqUrl = 
+			mockOpaqueUrlDao.getOpaqueUrl(SessionManager.getCurrentSessionUserId(), state.getPrimaryCalendarReference());
+		// TODO: Proper generation of an opaque URL.
+		context.put("opaqueUrl", opaqUrl.getOpaqueUUID() );
+		context.put("form-regenerate", BUTTON + "doOpaqueUrlRegenerate");
+		context.put("form-delete", BUTTON + "doOpaqueUrlDelete");
 		context.put("form-cancel", BUTTON + "doCancel");
 	}
 	
@@ -6969,10 +7045,33 @@ extends VelocityPortletStateAction
 		CalendarActionState state = (CalendarActionState)getState(context, data, CalendarActionState.class);
 		state.setPrevState(state.getState());
 		state.setReturnState(state.getState());
-		// WL-1398: A value amenable to manipulation in the debugger!
-		boolean someBooleanValue = true;
-		String newState = someBooleanValue ? "opaqueUrl1" : "opaqueUrl2";
+		MockOpaqueUrl opaqUrl = 
+			mockOpaqueUrlDao.getOpaqueUrl(SessionManager.getCurrentSessionUserId(), state.getPrimaryCalendarReference());
+		String newState = (opaqUrl == null) ? "opaqueUrl1" : "opaqueUrl2";
 		state.setState(newState);
+	}
+	
+	public void doOpaqueUrlGenerate(RunData data, Context context)
+	{
+		CalendarActionState state = (CalendarActionState)getState(context, data, CalendarActionState.class);
+		mockOpaqueUrlDao.newOpaqueUrl(SessionManager.getCurrentSessionUserId(), state.getPrimaryCalendarReference());
+		state.setState("opaqueUrl2");
+	}
+	
+	public void doOpaqueUrlRegenerate(RunData data, Context context)
+	{
+		CalendarActionState state = (CalendarActionState)getState(context, data, CalendarActionState.class);
+		String userUUID = SessionManager.getCurrentSessionUserId();
+		String calendarRef = state.getPrimaryCalendarReference();
+		mockOpaqueUrlDao.deleteOpaqueUrl(userUUID, calendarRef);
+		mockOpaqueUrlDao.newOpaqueUrl(userUUID, calendarRef);
+	}
+	
+	public void doOpaqueUrlDelete(RunData data, Context context)
+	{
+		CalendarActionState state = (CalendarActionState)getState(context, data, CalendarActionState.class);
+		mockOpaqueUrlDao.deleteOpaqueUrl(SessionManager.getCurrentSessionUserId(), state.getPrimaryCalendarReference());
+		state.setState("opaqueUrl1");
 	}
 	
 	/**

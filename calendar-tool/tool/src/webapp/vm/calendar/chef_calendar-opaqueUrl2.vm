@@ -1,11 +1,17 @@
 <div class="portletBody"> 
 	<h3>
-		$tlang.getString('ical.opaqueurl2.header')
+		$tlang.getString('ical.opaqueurl.header')
 	</h3>
-	$tlang.getString('ical.opaqueurl2.message')
+	<p class="shorttext indnt2">
+		$tlang.getString("ical.opaqueurl2.message")<br/>
+		<a href="$!opaqueUrl" target="_new_">$opaqueUrl</a>
+	</p>
 	<form action="#toolForm($action)" method="post">
-    	<p class="act">
-        	<input type="submit" accesskey="x" name="$form-cancel" value="$tlang.getString("gen.back")" />
-    	</p>
+    	<div class="act">
+        	<input type="submit" class="active" accesskey="r" name="$form-regenerate" value="$tlang.getString('ical.opaqueurl2.regenerate')" />
+			<input type="submit" class="active" accesskey="d" name="$form-delete" value="$tlang.getString('ical.opaqueurl2.delete')" />
+			<input type="submit" accesskey="x" name="$form-cancel" value="$tlang.getString("gen.back")" />
+    	</div>
+		<input type="hidden" name="state" value="$state" />
 	</form>
 </div>
