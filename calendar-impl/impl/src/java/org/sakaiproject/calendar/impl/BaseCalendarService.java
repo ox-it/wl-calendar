@@ -99,9 +99,11 @@ import org.sakaiproject.calendar.api.CalendarEvent;
 import org.sakaiproject.calendar.api.CalendarEventEdit;
 import org.sakaiproject.calendar.api.CalendarEventVector;
 import org.sakaiproject.calendar.api.CalendarService;
+import org.sakaiproject.calendar.api.OpaqueUrl;
 import org.sakaiproject.calendar.api.RecurrenceRule;
 import org.sakaiproject.calendar.api.CalendarEvent.EventAccess;
 import org.sakaiproject.calendar.cover.ExternalCalendarSubscriptionService;
+import org.sakaiproject.calendar.cover.OpaqueUrlDao;
 import org.sakaiproject.calendar.util.CalendarChannelReferenceMaker;
 import org.sakaiproject.calendar.util.CalendarReferenceToChannelConverter;
 import org.sakaiproject.calendar.util.CalendarUtil;
@@ -323,7 +325,13 @@ public abstract class BaseCalendarService implements CalendarService, StorageUse
    		return getAccessPoint(true) + Entity.SEPARATOR + REF_TYPE_CALENDAR_ICAL + Entity.SEPARATOR + context + Entity.SEPARATOR + id;
 	}
 
-   
+	public String calendarOpaqueUrlReference(Reference ref)
+	{
+      // TODO: Currently not sure whether alias handling will be required for this or not.
+	  OpaqueUrl opaqUrl = OpaqueUrlDao.getOpaqueUrl(SessionManager.getCurrentSessionUserId(), ref.getReference());	
+   	  return getAccessPoint(true) + Entity.SEPARATOR + REF_TYPE_CALENDAR_OPAQUEURL + Entity.SEPARATOR + opaqUrl.getOpaqueUUID() + Entity.SEPARATOR + ref.getId();
+	}
+	
 	/**
 	 * @inheritDoc
 	 */
@@ -1309,29 +1317,16 @@ public abstract class BaseCalendarService implements CalendarService, StorageUse
 		return false;
 	}
 	
-	// TEMP: {WL-1398} 'Proof-of-concept' mock placeholders. --->>>
-	private static Map<String,String> opaqueGuidToContextMap = new HashMap<String,String>();
-	private static Map<String,String> opaqueGuidToUserIdMap = new HashMap<String,String>();
-	static
-	{
-		opaqueGuidToContextMap.put("XXXX-test01-XXXX", "~ec20633a-6e8b-4f3d-b500-419d653a8da2");
-		opaqueGuidToContextMap.put("XXXX-test02-XXXX", "~9c375f4b-7fdf-4937-85a0-9f6b5f1a9f98");
-		opaqueGuidToContextMap.put("XXXX-test03-XXXX", "~e9f64967-783f-4b43-ab09-a8507e160d56");
-		opaqueGuidToUserIdMap.put("XXXX-test01-XXXX", "ec20633a-6e8b-4f3d-b500-419d653a8da2");
-		opaqueGuidToUserIdMap.put("XXXX-test02-XXXX", "9c375f4b-7fdf-4937-85a0-9f6b5f1a9f98");
-		opaqueGuidToUserIdMap.put("XXXX-test03-XXXX", "e9f64967-783f-4b43-ab09-a8507e160d56");
-	}
-	// <<<--- TEMP: {WL-1398} 'Proof-of-concept' mock placeholders:
-	
 	protected String mapOpaqueGuidToContextId(Reference reference, String opaqueGuid)
 	{
-		String contextId = null;
-		// Look up the context matching the 'opaqueGuid'
-		// TEMP: Go via persistence layer 'for real':
-		contextId = opaqueGuidToContextMap.get(opaqueGuid); 
+		OpaqueUrl opaqUrl = OpaqueUrlDao.getOpaqueUrl(opaqueGuid);
+		if (opaqUrl != null)
+		{
+			String[] parts = StringUtil.split(opaqUrl.getCalendarRef(), Entity.SEPARATOR);
+			return parts[3];
+		}
 		
-		// i.e. if null, should have no mapping and quickly fail!
-		return (contextId != null) ? contextId : "XXXX-XXXX-XXXX";
+		return "XXXX-XXXX-XXXX";
 	}
 	
 	protected String extractOpaqueGuid(Reference reference) throws EntityNotDefinedException
@@ -7360,8 +7355,8 @@ public abstract class BaseCalendarService implements CalendarService, StorageUse
 		String userId = null;
 		if (opaqueGuid != null)
 		{
-			// TODO: Look-up to proper persistent store.
-			userId = opaqueGuidToUserIdMap.get(opaqueGuid);
+			OpaqueUrl opaqUrl = OpaqueUrlDao.getOpaqueUrl(opaqueGuid); 
+			userId = (opaqUrl != null) ? opaqUrl.getUserUUID() : null;
 		}
 		if (opaqueGuid == null || userId == null)
 		{

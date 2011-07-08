@@ -41,5 +41,12 @@
 		<property name="siteService"><ref bean="org.sakaiproject.site.api.SiteService"/></property>
 		<property name="calendarImporterService"><ref bean="org.sakaiproject.calendar.api.CalendarImporterService"/></property>
 	</bean>
+	
+	<bean id="org.sakaiproject.calendar.api.OpaqueUrlDao"
+			class="org.sakaiproject.calendar.impl.MockOpaqueUrlDao"
+			init-method="init"
+			destroy-method="destroy"
+			singleton="true">
+	</bean>
 
 </beans>

@@ -98,6 +98,15 @@ public class CalendarService
 		return service.calendarICalReference(param0);
 	}
 	
+	public static java.lang.String calendarOpaqueUrlReference(org.sakaiproject.entity.api.Reference param0)
+	{
+		org.sakaiproject.calendar.api.CalendarService service = getInstance();
+		if (service == null)
+			return null;
+
+		return service.calendarOpaqueUrlReference(param0);
+	}
+	
 	public static java.lang.String calendarSubscriptionReference(java.lang.String param0, java.lang.String param1)
 	{
 		org.sakaiproject.calendar.api.CalendarService service = getInstance();

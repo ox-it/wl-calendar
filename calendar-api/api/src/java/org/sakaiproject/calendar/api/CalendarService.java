@@ -271,6 +271,13 @@ public interface CalendarService
 	* @return The the internal reference which can be used to access the calendar-in-pdf format from within the system.
 	*/
 	public String calendarICalReference(Reference ref);
+	
+	/**
+	* Access the internal reference which can be used to access the calendar in iCal format from within the system, via an opaque URL.
+	* @param ref The calendar reference
+	* @return The the internal reference which can be used to access the calendar-in-pdf format from within the system.
+	*/
+	public String calendarOpaqueUrlReference(Reference ref);
 
 	/**
 	* Access the internal reference which can be used to access the external calendar subscription from within the system.

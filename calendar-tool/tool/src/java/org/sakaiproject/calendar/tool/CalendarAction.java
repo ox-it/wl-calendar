@@ -58,11 +58,13 @@ import org.sakaiproject.calendar.api.CalendarEvent;
 import org.sakaiproject.calendar.api.CalendarEventEdit;
 import org.sakaiproject.calendar.api.CalendarEventVector;
 import org.sakaiproject.calendar.api.ExternalSubscription;
+import org.sakaiproject.calendar.api.OpaqueUrl;
 import org.sakaiproject.calendar.api.RecurrenceRule;
 import org.sakaiproject.calendar.cover.CalendarImporterService;
 import org.sakaiproject.calendar.cover.CalendarService;
 import org.sakaiproject.calendar.cover.ExternalCalendarSubscriptionService;
 import org.sakaiproject.calendar.util.CalendarChannelReferenceMaker;
+import org.sakaiproject.calendar.cover.OpaqueUrlDao;
 import org.sakaiproject.calendar.util.CalendarReferenceToChannelConverter;
 import org.sakaiproject.calendar.util.CalendarUtil;
 import org.sakaiproject.calendar.util.CalendarEntryProvider;
@@ -3990,74 +3992,6 @@ extends VelocityPortletStateAction
 		return template + "_icalexport";
 
 	} // buildIcalExportPanelContext
-
-	// ---------------- WL-1398: Mock placeholder stuff >>>: -------------------
-	static class MockOpaqueUrl
-	{
-		String userUUID;
-		String calendarRef;
-		String opaqueUUID;
-		MockOpaqueUrl(String userUUID, String calendarRef, String opaqueUUID)
-		{
-			this.userUUID = userUUID;
-			this.calendarRef = calendarRef;
-			this.opaqueUUID = opaqueUUID;
-		}
-		String getUserUUID()
-		{
-			return userUUID;
-		}
-		String getCalendarRef()
-		{
-			return calendarRef;
-		}
-		String getOpaqueUUID()
-		{
-			return opaqueUUID;
-		}
-	}
-	
-	static class MockOpaqueUrlDao
-	{
-		// <List{userUUID, calendarRef}, opaqueUUID>
-		HashMap<List<String>, String> myMap = new HashMap<List<String>, String>();
-		
-		MockOpaqueUrl newOpaqueUrl(String userUUID, String calendarRef)
-		{
-			List<String> list = new Vector<String>();
-			list.add(userUUID);
-			list.add(calendarRef);
-			String opaqueUUID = UUID.randomUUID().toString();
-			myMap.put(list, opaqueUUID);
-			return new MockOpaqueUrl(userUUID, calendarRef, opaqueUUID);
-		}
-		
-		MockOpaqueUrl getOpaqueUrl(String userUUID, String calendarRef)
-		{
-			List<String> list = new Vector<String>();
-			list.add(userUUID);
-			list.add(calendarRef);
-			String opaqueUUID = myMap.get(list);
-			return (opaqueUUID != null) 
-				? new MockOpaqueUrl(list.get(0), list.get(1), opaqueUUID) : null;
-		}
-		
-		void deleteOpaqueUrl(String userUUID, String calendarRef)
-		{
-			List<String> list = new Vector<String>();
-			list.add(userUUID);
-			list.add(calendarRef);
-			myMap.remove(list);
-		}
-		
-		// Note: A 'proper' DAO will probably want the methods below too...
-		//MockOpaqueUrl getOpaqueUrl(String opaqueUUID);
-		//void deleteOpaqueUrl(String opaqueUUID);
-	}
-	
-	static MockOpaqueUrlDao mockOpaqueUrlDao = new MockOpaqueUrlDao();
-	
-	// <<< ------------ WL-1398: Mock placeholder stuff. -----------------------
 	
 	/**
 	 * Setup for Opaque URL Export ("No URL").
@@ -4073,10 +4007,11 @@ extends VelocityPortletStateAction
 	 */
 	protected void buildOpaqueUrl2Context(VelocityPortlet portlet, Context context, RunData rundata, CalendarActionState state)
 	{
-		MockOpaqueUrl opaqUrl = 
-			mockOpaqueUrlDao.getOpaqueUrl(SessionManager.getCurrentSessionUserId(), state.getPrimaryCalendarReference());
-		// TODO: Proper generation of an opaque URL.
-		context.put("opaqueUrl", opaqUrl.getOpaqueUUID() );
+		String calId = state.getPrimaryCalendarReference();
+		Reference calendarRef = EntityManager.newReference(calId);
+		String opaqueUrl = ServerConfigurationService.getAccessUrl()
+			+ CalendarService.calendarOpaqueUrlReference(calendarRef);
+		context.put("opaqueUrl", opaqueUrl);
 		context.put("form-regenerate", BUTTON + "doOpaqueUrlRegenerate");
 		context.put("form-delete", BUTTON + "doOpaqueUrlDelete");
 		context.put("form-cancel", BUTTON + "doCancel");
@@ -7045,8 +6980,8 @@ extends VelocityPortletStateAction
 		CalendarActionState state = (CalendarActionState)getState(context, data, CalendarActionState.class);
 		state.setPrevState(state.getState());
 		state.setReturnState(state.getState());
-		MockOpaqueUrl opaqUrl = 
-			mockOpaqueUrlDao.getOpaqueUrl(SessionManager.getCurrentSessionUserId(), state.getPrimaryCalendarReference());
+		OpaqueUrl opaqUrl = 
+			OpaqueUrlDao.getOpaqueUrl(SessionManager.getCurrentSessionUserId(), state.getPrimaryCalendarReference());
 		String newState = (opaqUrl == null) ? "opaqueUrl1" : "opaqueUrl2";
 		state.setState(newState);
 	}
@@ -7054,7 +6989,7 @@ extends VelocityPortletStateAction
 	public void doOpaqueUrlGenerate(RunData data, Context context)
 	{
 		CalendarActionState state = (CalendarActionState)getState(context, data, CalendarActionState.class);
-		mockOpaqueUrlDao.newOpaqueUrl(SessionManager.getCurrentSessionUserId(), state.getPrimaryCalendarReference());
+		OpaqueUrlDao.newOpaqueUrl(SessionManager.getCurrentSessionUserId(), state.getPrimaryCalendarReference());
 		state.setState("opaqueUrl2");
 	}
 	
@@ -7063,14 +6998,14 @@ extends VelocityPortletStateAction
 		CalendarActionState state = (CalendarActionState)getState(context, data, CalendarActionState.class);
 		String userUUID = SessionManager.getCurrentSessionUserId();
 		String calendarRef = state.getPrimaryCalendarReference();
-		mockOpaqueUrlDao.deleteOpaqueUrl(userUUID, calendarRef);
-		mockOpaqueUrlDao.newOpaqueUrl(userUUID, calendarRef);
+		OpaqueUrlDao.deleteOpaqueUrl(userUUID, calendarRef);
+		OpaqueUrlDao.newOpaqueUrl(userUUID, calendarRef);
 	}
 	
 	public void doOpaqueUrlDelete(RunData data, Context context)
 	{
 		CalendarActionState state = (CalendarActionState)getState(context, data, CalendarActionState.class);
-		mockOpaqueUrlDao.deleteOpaqueUrl(SessionManager.getCurrentSessionUserId(), state.getPrimaryCalendarReference());
+		OpaqueUrlDao.deleteOpaqueUrl(SessionManager.getCurrentSessionUserId(), state.getPrimaryCalendarReference());
 		state.setState("opaqueUrl1");
 	}
 	
