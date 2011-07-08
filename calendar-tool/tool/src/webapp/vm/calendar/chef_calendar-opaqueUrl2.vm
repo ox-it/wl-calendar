@@ -3,13 +3,17 @@
 		$tlang.getString('ical.opaqueurl.header')
 	</h3>
 	<p class="shorttext indnt2">
-		$tlang.getString("ical.opaqueurl2.message")<br/>
+		$tlang.getString("ical.opaqueurl.webcal")<br/>
+		<a href="$!webcalUrl" target="_new_">$webcalUrl</a>
+	</p>
+	<p class="shorttext indnt2">
+		$tlang.getString("ical.opaqueurl.http")<br/>
 		<a href="$!opaqueUrl" target="_new_">$opaqueUrl</a>
 	</p>
 	<form action="#toolForm($action)" method="post">
     	<div class="act">
-        	<input type="submit" class="active" accesskey="r" name="$form-regenerate" value="$tlang.getString('ical.opaqueurl2.regenerate')" />
-			<input type="submit" class="active" accesskey="d" name="$form-delete" value="$tlang.getString('ical.opaqueurl2.delete')" />
+        	<input type="submit" class="active" accesskey="r" name="$form-regenerate" value="$tlang.getString('ical.opaqueurl.regenerate')" />
+			<input type="submit" class="active" accesskey="d" name="$form-delete" value="$tlang.getString('ical.opaqueurl.delete')" />
 			<input type="submit" accesskey="x" name="$form-cancel" value="$tlang.getString("gen.back")" />
     	</div>
 		<input type="hidden" name="state" value="$state" />
