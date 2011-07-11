@@ -15,6 +15,7 @@
 		<property name="idManager"><ref bean="org.sakaiproject.id.api.IdManager"/></property>
 		<property name="siteService"><ref bean="org.sakaiproject.site.api.SiteService"/></property>
 		<property name="aliasService"><ref bean="org.sakaiproject.alias.api.AliasService"/></property>
+		<property name="contentCopy"><ref bean="org.sakaiproject.content.api.ContentCopy"/></property>
  		<property name="containerTableName"><value>CALENDAR_CALENDAR</value></property>
  		<property name="resourceTableName"><value>CALENDAR_EVENT</value></property>
  		<property name="caching"><value>false</value></property>

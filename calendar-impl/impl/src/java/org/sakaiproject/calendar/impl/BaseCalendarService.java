@@ -108,6 +108,8 @@ import org.sakaiproject.calendar.util.CalendarUtil;
 import org.sakaiproject.calendar.util.CalendarEntryProvider;
 import org.sakaiproject.component.api.ServerConfigurationService;
 import org.sakaiproject.component.cover.ComponentManager;
+import org.sakaiproject.content.api.ContentCopy;
+import org.sakaiproject.content.api.ContentCopyContext;
 import org.sakaiproject.content.api.ContentHostingService;
 import org.sakaiproject.content.api.ContentResource;
 import org.sakaiproject.entity.api.ContextObserver;
@@ -589,6 +591,15 @@ public abstract class BaseCalendarService implements CalendarService, StorageUse
 	public void setSiteService(SiteService service)
 	{
 		m_siteService = service;
+	}
+	
+
+	/** Dependency: CopyCopy */
+	protected ContentCopy contentCopy = null;
+	
+	public void setContentCopy(ContentCopy contentCopy)
+	{
+		this.contentCopy = contentCopy;
 	}
 	
 	/**********************************************************************************************************************************************************************************************************************************************************
@@ -1990,7 +2001,8 @@ public abstract class BaseCalendarService implements CalendarService, StorageUse
 					}
 					nCalendar.setEventFields(allFields);
 				}
-
+				
+				ContentCopyContext copyContext = contentCopy.createCopyContext(fromContext, toContext, true);
 				for (int i = 0; i < oEvents.size(); i++)
 				{
 					CalendarEvent oEvent = (CalendarEvent) oEvents.get(i);
@@ -2001,7 +2013,8 @@ public abstract class BaseCalendarService implements CalendarService, StorageUse
 						if (assignmentId != null && assignmentId.length() > 0)
 							continue;
 
-						CalendarEvent e = nCalendar.addEvent(oEvent.getRange(), oEvent.getDisplayName(), oEvent.getDescription(),
+						String newDescription = contentCopy.convertContent(copyContext, oEvent.getDescriptionFormatted(), "text/html", null);
+						CalendarEvent e = nCalendar.addEvent(oEvent.getRange(), oEvent.getDisplayName(), newDescription,
 								oEvent.getType(), oEvent.getLocation(), oEvent.getAttachments());
 
 						try
@@ -2102,6 +2115,7 @@ public abstract class BaseCalendarService implements CalendarService, StorageUse
 					}
 					catch (PermissionException ignore) {}
 				}
+				contentCopy.copyReferences(copyContext);
 				// commit new calendar
 				m_storage.commitCalendar(nCalendar);
 				((BaseCalendarEdit) nCalendar).closeEdit();
