@@ -21,8 +21,9 @@
 
 package org.sakaiproject.calendar.impl;
 
+import static org.sakaiproject.content.api.ContentHostingService.AUTH_RESOURCE_READ;
+
 import java.io.ByteArrayOutputStream;
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -96,18 +97,18 @@ import org.sakaiproject.authz.cover.SecurityService;
 import org.sakaiproject.calendar.api.Calendar;
 import org.sakaiproject.calendar.api.CalendarEdit;
 import org.sakaiproject.calendar.api.CalendarEvent;
+import org.sakaiproject.calendar.api.CalendarEvent.EventAccess;
 import org.sakaiproject.calendar.api.CalendarEventEdit;
 import org.sakaiproject.calendar.api.CalendarEventVector;
 import org.sakaiproject.calendar.api.CalendarService;
 import org.sakaiproject.calendar.api.OpaqueUrl;
 import org.sakaiproject.calendar.api.RecurrenceRule;
-import org.sakaiproject.calendar.api.CalendarEvent.EventAccess;
 import org.sakaiproject.calendar.cover.ExternalCalendarSubscriptionService;
 import org.sakaiproject.calendar.cover.OpaqueUrlDao;
 import org.sakaiproject.calendar.util.CalendarChannelReferenceMaker;
+import org.sakaiproject.calendar.util.CalendarEntryProvider;
 import org.sakaiproject.calendar.util.CalendarReferenceToChannelConverter;
 import org.sakaiproject.calendar.util.CalendarUtil;
-import org.sakaiproject.calendar.util.CalendarEntryProvider;
 import org.sakaiproject.component.api.ServerConfigurationService;
 import org.sakaiproject.component.cover.ComponentManager;
 import org.sakaiproject.content.api.ContentHostingService;
@@ -1326,7 +1327,7 @@ public abstract class BaseCalendarService implements CalendarService, StorageUse
 			return parts[3];
 		}
 		
-		return "XXXX-XXXX-XXXX";
+		return null;
 	}
 	
 	protected String extractOpaqueGuid(Reference reference) throws EntityNotDefinedException
@@ -7360,7 +7361,6 @@ public abstract class BaseCalendarService implements CalendarService, StorageUse
 		}
 		if (opaqueGuid == null || userId == null)
 		{
-			// TODO: Right kind of exception?!
 			throw new EntityNotDefinedException(ref.getReference());
 		}
 		
@@ -7376,9 +7376,12 @@ public abstract class BaseCalendarService implements CalendarService, StorageUse
 		catch (UserNotDefinedException e) 
 		{
 			M_log.warn("User not found: " + userId);
+			throw new EntityNotDefinedException(ref.getReference());
 		} 
 		catch (PermissionException e) 
 		{
+			throw new EntityPermissionException(SessionManager.getCurrentSessionUserId(), 
+					AUTH_RESOURCE_READ, ref.getReference());
 		} 
 		catch (IOException e) 
 		{
