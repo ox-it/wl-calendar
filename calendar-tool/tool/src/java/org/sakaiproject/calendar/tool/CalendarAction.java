@@ -2153,6 +2153,15 @@ extends VelocityPortletStateAction
 		{
 			return CalendarService.allowSubscribeCalendar(calendarReference);
 		}
+		
+		/**
+		 * Returns true if the user is allowed to subscribe to the implicit
+		 * calendar.
+		 */
+		static public boolean allowSubscribeThis(String calendarReference)
+		{
+			return CalendarService.allowSubscribeThisCalendar(calendarReference);
+		}
 	}
 	
 	private final static String SSTATE_ATTRIBUTE_ADDFIELDS_PAGE =
@@ -2974,6 +2983,8 @@ extends VelocityPortletStateAction
 			CalendarPermissions.allowImport(
 				state.getPrimaryCalendarReference()),
 			CalendarPermissions.allowSubscribe(
+					state.getPrimaryCalendarReference()), 
+			CalendarPermissions.allowSubscribeThis(
 					state.getPrimaryCalendarReference()));
 		
 		context.put(
@@ -3118,6 +3129,8 @@ extends VelocityPortletStateAction
 			CalendarPermissions.allowImport(
 				state.getPrimaryCalendarReference()),
 			CalendarPermissions.allowSubscribe(
+				state.getPrimaryCalendarReference()), 
+			CalendarPermissions.allowSubscribeThis(
 				state.getPrimaryCalendarReference()));
 		
 		// added by zqian for toolbar
@@ -3230,6 +3243,8 @@ extends VelocityPortletStateAction
 			CalendarPermissions.allowImport(
 				state.getPrimaryCalendarReference()),
 			CalendarPermissions.allowSubscribe(
+				state.getPrimaryCalendarReference()), 
+			CalendarPermissions.allowSubscribeThis(
 				state.getPrimaryCalendarReference()));
 		
 		state.setState("month");
@@ -3560,6 +3575,8 @@ extends VelocityPortletStateAction
 			CalendarPermissions.allowImport(
 				state.getPrimaryCalendarReference()),
 			CalendarPermissions.allowSubscribe(
+				state.getPrimaryCalendarReference()), 
+			CalendarPermissions.allowSubscribeThis(
 				state.getPrimaryCalendarReference()));
 		
 		context.put("permissionallowed",Boolean.valueOf(allowed));
@@ -3803,6 +3820,8 @@ extends VelocityPortletStateAction
 			CalendarPermissions.allowImport(
 				state.getPrimaryCalendarReference()),
 			CalendarPermissions.allowSubscribe(
+				state.getPrimaryCalendarReference()), 
+			CalendarPermissions.allowSubscribeThis(
 				state.getPrimaryCalendarReference()));
 		
 		calObj.setDay(yearObj.getYear(),monthObj1.getMonth(),dayObj.getDay());
@@ -7385,7 +7404,9 @@ extends VelocityPortletStateAction
 			CalendarPermissions.allowImport(
 				state.getPrimaryCalendarReference()),
 			CalendarPermissions.allowSubscribe(
-					state.getPrimaryCalendarReference()));
+				state.getPrimaryCalendarReference()), 
+			CalendarPermissions.allowSubscribeThis(
+				state.getPrimaryCalendarReference()));
 		
 		// added by zqian for toolbar
 		context.put("allow_new", Boolean.valueOf(allowed));
@@ -7565,7 +7586,8 @@ extends VelocityPortletStateAction
 	boolean allow_merge_calendars,
 	boolean allow_modify_calendar_properties,
 	boolean allow_import_export,
-	boolean allow_subscribe)
+	boolean allow_subscribe, 
+	boolean allow_subscribe_this)
 	{
 		Menu bar = new MenuImpl(portlet, runData, "CalendarAction");
 		
@@ -7612,7 +7634,7 @@ extends VelocityPortletStateAction
 		// A link for subscribing to the implicit calendar
 		if ( ServerConfigurationService.getBoolean("ical.opaqueurl.export",false) )
 		{
-			bar.add( new MenuEntry(rb.getString("java.subscribe"), null, allow_new, MenuItem.CHECKED_NA, "doOpaqueUrl") );
+			bar.add( new MenuEntry(rb.getString("java.subscribe"), null, allow_subscribe_this, MenuItem.CHECKED_NA, "doOpaqueUrl") );
 		}
 		
 		//2nd menu bar for the PDF print only

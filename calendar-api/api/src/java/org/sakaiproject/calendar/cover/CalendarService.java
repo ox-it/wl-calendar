@@ -179,6 +179,15 @@ public class CalendarService
 		return service.allowSubscribeCalendar(param0);
 	}
 
+	public static boolean allowSubscribeThisCalendar(java.lang.String param0)
+	{
+		org.sakaiproject.calendar.api.CalendarService service = getInstance();
+		if (service == null)
+			return false;
+
+		return service.allowSubscribeThisCalendar(param0);
+	}
+	
 	public static boolean allowEditCalendar(java.lang.String param0)
 	{
 		org.sakaiproject.calendar.api.CalendarService service = getInstance();

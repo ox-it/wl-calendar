@@ -79,6 +79,9 @@ public interface CalendarService
 
 	/** Security lock for subscribing external calendars. */
 	public static final String AUTH_SUBSCRIBE_CALENDAR = "calendar.subscribe";
+	
+	/** Security lock for subscribing to the implicit calendar. */
+	public static final String AUTH_SUBSCRIBE_CALENDAR_THIS = "calendar.subscribe.this";
 
 	/** Security lock for adding to a calendar. */
 	public static final String AUTH_READ_CALENDAR = "calendar.read";
@@ -200,6 +203,13 @@ public interface CalendarService
 	*/
 	public boolean allowSubscribeCalendar(String ref);
 
+	/**
+	* check permissions for subscribing to the implicit calendar.
+	* @param ref The calendar reference.
+	* @return true if the user is allowed to subscribe to the implicit calendar, false if not.
+	*/
+	public boolean allowSubscribeThisCalendar(String ref);
+	
 	/**
 	* check permissions for editCalendar() e.g. add/delete fields
 	* @param ref The calendar reference.

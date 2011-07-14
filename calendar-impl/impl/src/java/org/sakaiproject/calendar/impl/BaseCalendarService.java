@@ -952,6 +952,19 @@ public abstract class BaseCalendarService implements CalendarService, StorageUse
 	} // allowSubscribeCalendar
 
 	/**
+	 * check permissions for subscribing to the implicit calendar.
+	 * 
+	 * @param ref
+	 *        The calendar reference.
+	 * @return true if the user is allowed to subscribe to the implicit calendar, false if not.
+	 */
+	public boolean allowSubscribeThisCalendar(String ref)
+	{
+		// If you can read this calendar, you may subscribe to it:
+		return unlockCheck(AUTH_READ_CALENDAR, ref);
+	}
+	
+	/**
 	 * check permissions for editCalendar()
 	 * 
 	 * @param ref
