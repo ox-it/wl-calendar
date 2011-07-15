@@ -21,8 +21,6 @@
 
 package org.sakaiproject.calendar.impl;
 
-import static org.sakaiproject.content.api.ContentHostingService.AUTH_RESOURCE_READ;
-
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -1208,21 +1206,14 @@ public abstract class BaseCalendarService implements CalendarService, StorageUse
 					EntityAccessOverloadException, EntityCopyrightException
 			{
 				String calRef = calendarReference(ref.getContext(), SiteService.MAIN_CONTAINER);
-				// Make sure the current user can access this calendar first.
-				if (!allowGetCalendar(calRef)) {
-					throw new EntityPermissionException(SessionManager.getCurrentSessionUserId(), SECURE_READ, calRef);
-				}
 				// we only access the pdf & ical reference
 				if ( !REF_TYPE_CALENDAR_PDF.equals(ref.getSubType()) &&
 					  !REF_TYPE_CALENDAR_ICAL.equals(ref.getSubType()) &&
-					  !REF_TYPE_CALENDAR_OPAQUEURL.equals(ref.getSubType())) 
+					  !REF_TYPE_CALENDAR_OPAQUEURL.equals(ref.getSubType()))
+				{	
 						throw new EntityNotDefinedException(ref.getReference());
+				}
 
-				// check if ical export is enabled
-				if ( (REF_TYPE_CALENDAR_ICAL.equals(ref.getSubType()) || REF_TYPE_CALENDAR_OPAQUEURL.equals(ref.getSubType())) &&
-					  !getExportEnabled(calRef) )
-						throw new EntityNotDefinedException(ref.getReference());
-				
 				if (REF_TYPE_CALENDAR_PDF.equals(ref.getSubType()))
 				{
 					handleAccessPdf(req, res, ref, calRef);
@@ -7321,6 +7312,17 @@ public abstract class BaseCalendarService implements CalendarService, StorageUse
 	protected void handleAccessIcal(
 			HttpServletResponse res, Reference ref, String calRef)
 			throws EntityPermissionException, EntityNotDefinedException {
+		// check if ical export is enabled
+		if (!getExportEnabled(calRef))
+		{
+			throw new EntityNotDefinedException(ref.getReference());
+		}
+		// Make sure the current user can access this calendar first.
+		if (m_siteService.isUserSite(ref.getContext()) && !allowGetCalendar(calRef)) 
+		{
+			throw new EntityPermissionException(SessionManager.getCurrentSessionUserId(), SECURE_READ, calRef);
+		}
+		
 		try
 		{
 			handleAccessIcalCommon(res, ref, calRef);
@@ -7382,7 +7384,15 @@ public abstract class BaseCalendarService implements CalendarService, StorageUse
 			Authentication authn = new org.sakaiproject.util.Authentication(userId, eid);
 			if (UsageSessionService.login(authn, request))
 			{
-				handleAccessIcalCommon(res, ref, calRef);
+				// Make sure the current user can access this calendar first.
+				if (allowGetCalendar(calRef)) 
+				{
+					handleAccessIcalCommon(res, ref, calRef);
+				}
+				else
+				{
+					M_log.warn("Calendar access via opaque UUID failed: " + opaqueGuid);
+				}
 			}
 		} 
 		catch (UserNotDefinedException e) 
@@ -7392,8 +7402,7 @@ public abstract class BaseCalendarService implements CalendarService, StorageUse
 		} 
 		catch (PermissionException e) 
 		{
-			throw new EntityPermissionException(SessionManager.getCurrentSessionUserId(), 
-					AUTH_RESOURCE_READ, ref.getReference());
+			M_log.warn("Calendar access via opaque UUID failed: " + opaqueGuid);
 		} 
 		catch (IOException e) 
 		{
