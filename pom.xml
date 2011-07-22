@@ -24,9 +24,22 @@
     <module>calendar-summary-tool/tool</module>
     <module>calendar-tool/tool</module>
     <module>calendar-util/util</module>
+    <module>calendar-hbm</module>
   </modules>
   <dependencyManagement>
     <dependencies>
+	  <dependency>
+	    <groupId>org.sakaiproject</groupId>
+	    <artifactId>sakai-calendar-api</artifactId>
+		<version>${project.version}</version>
+		<scope>provided</scope>
+	  </dependency>
+	<dependency>
+		<groupId>org.sakaiproject.calendar</groupId>
+		<artifactId>sakai-calendar-hbm</artifactId>
+		<version>${project.version}</version>
+		<scope>provided</scope>
+	</dependency>
       <dependency>
         <groupId>org.sakaiproject</groupId>
         <artifactId>sakai-calendar-util</artifactId>
