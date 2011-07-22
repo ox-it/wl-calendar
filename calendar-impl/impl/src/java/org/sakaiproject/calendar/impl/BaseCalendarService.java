@@ -7392,6 +7392,7 @@ public abstract class BaseCalendarService implements CalendarService, StorageUse
 				else
 				{
 					M_log.warn("Calendar access via opaque UUID failed: " + opaqueGuid);
+					throw new EntityNotDefinedException(opaqueGuid);
 				}
 			}
 		} 
@@ -7403,6 +7404,7 @@ public abstract class BaseCalendarService implements CalendarService, StorageUse
 		catch (PermissionException e) 
 		{
 			M_log.warn("Calendar access via opaque UUID failed: " + opaqueGuid);
+			throw new EntityNotDefinedException(opaqueGuid);
 		} 
 		catch (IOException e) 
 		{
