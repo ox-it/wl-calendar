@@ -76,6 +76,7 @@ import net.fortuna.ical4j.model.property.ProdId;
 import net.fortuna.ical4j.model.property.TzId;
 import net.fortuna.ical4j.model.property.Uid;
 import net.fortuna.ical4j.model.property.Version;
+import net.fortuna.ical4j.model.property.XProperty;
 
 import org.apache.avalon.framework.logger.ConsoleLogger;
 import org.apache.commons.logging.Log;
@@ -6852,7 +6853,7 @@ public abstract class BaseCalendarService implements CalendarService, StorageUse
 		return calendarReferenceList;
 	}
 
-	protected void printICalSchedule(List<String> calRefs, OutputStream os) 
+	protected void printICalSchedule(String calendarName, List<String> calRefs, OutputStream os) 
 		throws PermissionException
 	{
 		// generate iCal text file 
@@ -6860,6 +6861,7 @@ public abstract class BaseCalendarService implements CalendarService, StorageUse
 		ical.getProperties().add(new ProdId("-//SakaiProject//iCal4j 1.0//EN"));
 		ical.getProperties().add(Version.VERSION_2_0);
 		ical.getProperties().add(CalScale.GREGORIAN);
+		ical.getProperties().add(new XProperty("X-WR-CALNAME", calendarName));
 		
 		TimeZoneRegistry registry = TimeZoneRegistryFactory.getInstance().createRegistry(); 
 		TzId tzId = new TzId( TimeService.getLocalTimeZone().getID() ); 
@@ -7305,8 +7307,12 @@ public abstract class BaseCalendarService implements CalendarService, StorageUse
 		res.addHeader("Content-Disposition", "inline; filename=\"" + aliasName + "\"");
 		res.setContentType(ICAL_MIME_TYPE);
 		res.setDateHeader("Last-Modified", modDate.getTime() );
-		
-		printICalSchedule(referenceList, res.getOutputStream());
+		String calendarName = "";
+		try {
+			calendarName = m_siteService.getSite(ref.getContext()).getTitle();
+		} catch (IdUnusedException e) {
+		}
+		printICalSchedule(calendarName, referenceList, res.getOutputStream());
 	}
 	
 	protected void handleAccessIcal(
