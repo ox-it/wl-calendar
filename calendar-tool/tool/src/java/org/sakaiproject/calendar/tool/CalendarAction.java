@@ -7632,7 +7632,7 @@ extends VelocityPortletStateAction
 			}
 		
 		// A link for subscribing to the implicit calendar
-		if ( ServerConfigurationService.getBoolean("ical.opaqueurl.export",false) )
+		if ( ServerConfigurationService.getBoolean("ical.opaqueurl.subscribe",false) )
 		{
 			bar.add( new MenuEntry(rb.getString("java.subscribe"), null, allow_subscribe_this, MenuItem.CHECKED_NA, "doOpaqueUrl") );
 		}
