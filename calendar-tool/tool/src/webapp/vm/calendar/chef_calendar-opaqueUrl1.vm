@@ -1,0 +1,15 @@
+<div class="portletBody"> 
+	<h3>
+		$tlang.getString('ical.opaqueurl.header')
+	</h3>
+	<p class="instruction">
+		$tlang.getString('ical.opaqueurl.explanation')
+	</p>	
+	<form action="#toolForm($action)" method="post">
+    	<div class="act">
+        	<input type="submit" class="active" accesskey="g" name="$form-generate" value="$tlang.getString('ical.opaqueurl.generate')" />
+			<input type="submit" accesskey="x" name="$form-cancel" value="$tlang.getString("gen.cancel")" />
+    	</div>
+		<input type="hidden" name="state" value="$state" />
+	</form>
+</div>

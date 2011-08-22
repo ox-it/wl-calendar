@@ -79,6 +79,9 @@ public interface CalendarService
 
 	/** Security lock for subscribing external calendars. */
 	public static final String AUTH_SUBSCRIBE_CALENDAR = "calendar.subscribe";
+	
+	/** Security lock for subscribing to the implicit calendar. */
+	public static final String AUTH_SUBSCRIBE_CALENDAR_THIS = "calendar.subscribe.this";
 
 	/** Security lock for adding to a calendar. */
 	public static final String AUTH_READ_CALENDAR = "calendar.read";
@@ -98,6 +101,9 @@ public interface CalendarService
 	/** The Reference type for a external calendar subscription. */
 	public static final String REF_TYPE_CALENDAR_SUBSCRIPTION = "subscription";
 
+	/** The Reference type for an "Opaque URL" URL. */
+	public static final String REF_TYPE_CALENDAR_OPAQUEURL = "opaq";
+	
 	/** Calendar property to enable ical export */
 	//(tbd: move to ResourceProperties) 
 	public static final String PROP_ICAL_ENABLE = "ICAL:enable";
@@ -198,6 +204,13 @@ public interface CalendarService
 	public boolean allowSubscribeCalendar(String ref);
 
 	/**
+	* check permissions for subscribing to the implicit calendar.
+	* @param ref The calendar reference.
+	* @return true if the user is allowed to subscribe to the implicit calendar, false if not.
+	*/
+	public boolean allowSubscribeThisCalendar(String ref);
+	
+	/**
 	* check permissions for editCalendar() e.g. add/delete fields
 	* @param ref The calendar reference.
 	* @return true if the user is allowed to edit the calendar, false if not.
@@ -268,6 +281,13 @@ public interface CalendarService
 	* @return The the internal reference which can be used to access the calendar-in-pdf format from within the system.
 	*/
 	public String calendarICalReference(Reference ref);
+	
+	/**
+	* Access the internal reference which can be used to access the calendar in iCal format from within the system, via an opaque URL.
+	* @param ref The calendar reference
+	* @return The the internal reference which can be used to access the calendar-in-pdf format from within the system.
+	*/
+	public String calendarOpaqueUrlReference(Reference ref);
 
 	/**
 	* Access the internal reference which can be used to access the external calendar subscription from within the system.
