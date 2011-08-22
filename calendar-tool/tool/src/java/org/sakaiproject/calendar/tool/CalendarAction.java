@@ -42,6 +42,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TimeZone;
+import java.util.UUID;
 import java.util.Vector;
 import java.util.Properties;
 import java.util.Map.Entry;
@@ -60,11 +61,13 @@ import org.sakaiproject.calendar.api.CalendarEvent;
 import org.sakaiproject.calendar.api.CalendarEventEdit;
 import org.sakaiproject.calendar.api.CalendarEventVector;
 import org.sakaiproject.calendar.api.ExternalSubscription;
+import org.sakaiproject.calendar.api.OpaqueUrl;
 import org.sakaiproject.calendar.api.RecurrenceRule;
 import org.sakaiproject.calendar.cover.CalendarImporterService;
 import org.sakaiproject.calendar.cover.CalendarService;
 import org.sakaiproject.calendar.cover.ExternalCalendarSubscriptionService;
 import org.sakaiproject.calendar.util.CalendarChannelReferenceMaker;
+import org.sakaiproject.calendar.cover.OpaqueUrlDao;
 import org.sakaiproject.calendar.util.CalendarReferenceToChannelConverter;
 import org.sakaiproject.calendar.util.CalendarUtil;
 import org.sakaiproject.calendar.util.CalendarEntryProvider;
@@ -2164,6 +2167,15 @@ extends VelocityPortletStateAction
 		{
 			return CalendarService.allowSubscribeCalendar(calendarReference);
 		}
+		
+		/**
+		 * Returns true if the user is allowed to subscribe to the implicit
+		 * calendar.
+		 */
+		static public boolean allowSubscribeThis(String calendarReference)
+		{
+			return CalendarService.allowSubscribeThisCalendar(calendarReference);
+		}
 	}
 	
 	private final static String SSTATE_ATTRIBUTE_ADDFIELDS_PAGE =
@@ -2406,6 +2418,14 @@ extends VelocityPortletStateAction
 		else if (stateName.equals("icalEx"))
 		{
 			buildIcalExportPanelContext(portlet, context, runData, state);
+		}
+		else if (stateName.equals("opaqueUrl1"))
+		{
+			buildOpaqueUrl1Context(portlet, context, runData, state);
+		}
+		else if (stateName.equals("opaqueUrl2"))
+		{
+			buildOpaqueUrl2Context(portlet, context, runData, state);
 		}
 		else if (stateName.equals("delete"))
 		{
@@ -2997,6 +3017,8 @@ extends VelocityPortletStateAction
 			CalendarPermissions.allowImport(
 				state.getPrimaryCalendarReference()),
 			CalendarPermissions.allowSubscribe(
+					state.getPrimaryCalendarReference()), 
+			CalendarPermissions.allowSubscribeThis(
 					state.getPrimaryCalendarReference()));
 		
 		context.put(
@@ -3138,6 +3160,8 @@ extends VelocityPortletStateAction
 			CalendarPermissions.allowImport(
 				state.getPrimaryCalendarReference()),
 			CalendarPermissions.allowSubscribe(
+				state.getPrimaryCalendarReference()), 
+			CalendarPermissions.allowSubscribeThis(
 				state.getPrimaryCalendarReference()));
 		
 		// added by zqian for toolbar
@@ -3248,6 +3272,8 @@ extends VelocityPortletStateAction
 			CalendarPermissions.allowImport(
 				state.getPrimaryCalendarReference()),
 			CalendarPermissions.allowSubscribe(
+				state.getPrimaryCalendarReference()), 
+			CalendarPermissions.allowSubscribeThis(
 				state.getPrimaryCalendarReference()));
 		
 		state.setState("month");
@@ -3569,6 +3595,8 @@ extends VelocityPortletStateAction
 			CalendarPermissions.allowImport(
 				state.getPrimaryCalendarReference()),
 			CalendarPermissions.allowSubscribe(
+				state.getPrimaryCalendarReference()), 
+			CalendarPermissions.allowSubscribeThis(
 				state.getPrimaryCalendarReference()));
 		
 		context.put("permissionallowed",Boolean.valueOf(allowed));
@@ -3803,6 +3831,8 @@ extends VelocityPortletStateAction
 			CalendarPermissions.allowImport(
 				state.getPrimaryCalendarReference()),
 			CalendarPermissions.allowSubscribe(
+				state.getPrimaryCalendarReference()), 
+			CalendarPermissions.allowSubscribeThis(
 				state.getPrimaryCalendarReference()));
 		
 		calObj.setDay(yearObj.getYear(),monthObj1.getMonth(),dayObj.getDay());
@@ -3993,6 +4023,31 @@ extends VelocityPortletStateAction
 		return template + "_icalexport";
 
 	} // buildIcalExportPanelContext
+	
+	/**
+	 * Setup for Opaque URL Export ("No URL").
+	 */
+	protected void buildOpaqueUrl1Context(VelocityPortlet portlet, Context context, RunData rundata, CalendarActionState state)
+	{
+		context.put("form-generate", BUTTON + "doOpaqueUrlGenerate");
+		context.put("form-cancel", BUTTON + "doCancel");
+	}
+	
+	/**
+	 * Setup for Opaque URL Export ("URL exists").
+	 */
+	protected void buildOpaqueUrl2Context(VelocityPortlet portlet, Context context, RunData rundata, CalendarActionState state)
+	{
+		String calId = state.getPrimaryCalendarReference();
+		Reference calendarRef = EntityManager.newReference(calId);
+		String opaqueUrl = ServerConfigurationService.getAccessUrl()
+			+ CalendarService.calendarOpaqueUrlReference(calendarRef);
+		context.put("opaqueUrl", opaqueUrl);
+		context.put("webcalUrl", opaqueUrl.replaceFirst("http", "webcal"));
+		context.put("form-regenerate", BUTTON + "doOpaqueUrlRegenerate");
+		context.put("form-delete", BUTTON + "doOpaqueUrlDelete");
+		context.put("form-cancel", BUTTON + "doCancel");
+	}
 	
 	/**
 	 * Build the context for showing delete view
@@ -6911,6 +6966,43 @@ extends VelocityPortletStateAction
 		
 		calendarSubscriptionsPage.doSubscriptions( runData, context, state, getSessionState(runData));
 	} // doMerge
+
+	/**
+	 * Action is used when the user clicks on the 'Subscribe' link:
+	 */
+	public void doOpaqueUrl(RunData data, Context context)
+	{
+		CalendarActionState state = (CalendarActionState)getState(context, data, CalendarActionState.class);
+		state.setPrevState(state.getState());
+		state.setReturnState(state.getState());
+		OpaqueUrl opaqUrl = 
+			OpaqueUrlDao.getOpaqueUrl(SessionManager.getCurrentSessionUserId(), state.getPrimaryCalendarReference());
+		String newState = (opaqUrl == null) ? "opaqueUrl1" : "opaqueUrl2";
+		state.setState(newState);
+	}
+	
+	public void doOpaqueUrlGenerate(RunData data, Context context)
+	{
+		CalendarActionState state = (CalendarActionState)getState(context, data, CalendarActionState.class);
+		OpaqueUrlDao.newOpaqueUrl(SessionManager.getCurrentSessionUserId(), state.getPrimaryCalendarReference());
+		state.setState("opaqueUrl2");
+	}
+	
+	public void doOpaqueUrlRegenerate(RunData data, Context context)
+	{
+		CalendarActionState state = (CalendarActionState)getState(context, data, CalendarActionState.class);
+		String userUUID = SessionManager.getCurrentSessionUserId();
+		String calendarRef = state.getPrimaryCalendarReference();
+		OpaqueUrlDao.deleteOpaqueUrl(userUUID, calendarRef);
+		OpaqueUrlDao.newOpaqueUrl(userUUID, calendarRef);
+	}
+	
+	public void doOpaqueUrlDelete(RunData data, Context context)
+	{
+		CalendarActionState state = (CalendarActionState)getState(context, data, CalendarActionState.class);
+		OpaqueUrlDao.deleteOpaqueUrl(SessionManager.getCurrentSessionUserId(), state.getPrimaryCalendarReference());
+		state.setState("opaqueUrl1");
+	}
 	
 	/**
 	 * Handle a request to set options.
@@ -7288,7 +7380,9 @@ extends VelocityPortletStateAction
 			CalendarPermissions.allowImport(
 				state.getPrimaryCalendarReference()),
 			CalendarPermissions.allowSubscribe(
-					state.getPrimaryCalendarReference()));
+				state.getPrimaryCalendarReference()), 
+			CalendarPermissions.allowSubscribeThis(
+				state.getPrimaryCalendarReference()));
 		
 		// added by zqian for toolbar
 		context.put("allow_new", Boolean.valueOf(allowed));
@@ -7468,7 +7562,8 @@ extends VelocityPortletStateAction
 	boolean allow_merge_calendars,
 	boolean allow_modify_calendar_properties,
 	boolean allow_import_export,
-	boolean allow_subscribe)
+	boolean allow_subscribe, 
+	boolean allow_subscribe_this)
 	{
 		Menu bar = new MenuImpl(portlet, runData, "CalendarAction");
 		
@@ -7511,6 +7606,12 @@ extends VelocityPortletStateAction
 			{
 				bar.add( new MenuEntry(rb.getString("java.subscriptions"), null, allow_subscribe, MenuItem.CHECKED_NA, "doSubscriptions") );
 			}
+		
+		// A link for subscribing to the implicit calendar
+		if ( ServerConfigurationService.getBoolean("ical.opaqueurl.subscribe",false) )
+		{
+			bar.add( new MenuEntry(rb.getString("java.subscribe"), null, allow_subscribe_this, MenuItem.CHECKED_NA, "doOpaqueUrl") );
+		}
 		
 		//2nd menu bar for the PDF print only
 		Menu bar_print = new MenuImpl(portlet, runData, "CalendarAction");
