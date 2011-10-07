@@ -3,6 +3,7 @@ package org.sakaiproject.calendar.impl;
 import java.io.Serializable;
 import java.sql.SQLException;
 import java.util.List;
+import java.util.UUID;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -19,10 +20,8 @@ public class OpaqueUrlDaoHbm extends HibernateDaoSupport implements OpaqueUrlDao
 	private static Log log = LogFactory.getLog(OpaqueUrlDaoHbm.class);
 	
 	public OpaqueUrl newOpaqueUrl(String userUUID, String calendarRef) {
-		final OpaqueUrlHbm opaqueUrl = new OpaqueUrlHbm();
-		opaqueUrl.setUserUUID(userUUID);
-		opaqueUrl.setCalendarRef(calendarRef);
-		String opaqueUUID = (String)getHibernateTemplate().execute(new HibernateCallback() {
+		final OpaqueUrlHbm opaqueUrl = new OpaqueUrlHbm(userUUID, calendarRef, UUID.randomUUID().toString());
+		getHibernateTemplate().execute(new HibernateCallback() {
 			public Object doInHibernate(Session session)
 					throws HibernateException, SQLException {
 				Serializable opaqueUUID = session.save(opaqueUrl);
@@ -32,7 +31,7 @@ public class OpaqueUrlDaoHbm extends HibernateDaoSupport implements OpaqueUrlDao
 			}
 			
 		});
-		return new OpaqueUrlHbm(userUUID, calendarRef, opaqueUUID);
+		return opaqueUrl;
 	}
 
 	public OpaqueUrl getOpaqueUrl(String userUUID, String calendarRef) {

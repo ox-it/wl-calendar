@@ -12,7 +12,6 @@
 		<!-- create the primary key id -->
 		<id name="opaqueUUID" type="string">
 			<column name="ID" />
-			<generator class="uuid" />
 		</id>
 		<property name="userUUID" type="string" length="64"
 			index="calendar_opaqueurl_idx" />
