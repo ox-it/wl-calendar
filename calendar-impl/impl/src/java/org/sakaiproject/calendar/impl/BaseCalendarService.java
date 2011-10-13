@@ -131,6 +131,7 @@ import org.sakaiproject.entity.api.ResourceProperties;
 import org.sakaiproject.entity.api.ResourcePropertiesEdit;
 import org.sakaiproject.event.api.Event;
 import org.sakaiproject.event.api.NotificationService;
+import org.sakaiproject.event.api.UsageSession;
 import org.sakaiproject.event.cover.EventTrackingService;
 import org.sakaiproject.event.cover.UsageSessionService;
 import org.sakaiproject.exception.IdInvalidException;
@@ -7448,8 +7449,16 @@ public abstract class BaseCalendarService implements CalendarService, StorageUse
 			throw new EntityNotDefinedException(ref.getReference());
 		}
 		
+		boolean isAlreadyLoggedIn = false;
+		
 		try 
 		{
+			// We want to avoid an inadvertent logout coming from the same UA:
+			UsageSession usage = UsageSessionService.getSession();
+			if ((usage != null) && userId.equals(usage.getUserId()) && !usage.isClosed())
+			{
+				isAlreadyLoggedIn = true;
+			}
 			String eid = UserDirectoryService.getUserEid(userId);
 			Authentication authn = new org.sakaiproject.util.Authentication(userId, eid);
 			if (UsageSessionService.login(authn, request))
@@ -7481,7 +7490,10 @@ public abstract class BaseCalendarService implements CalendarService, StorageUse
 		}
 		finally
 		{
-			UsageSessionService.logout();
+			if (!isAlreadyLoggedIn)
+			{
+				UsageSessionService.logout();
+			}
 		}
 	}	
 
