@@ -65,6 +65,7 @@ import net.fortuna.ical4j.model.DateTime;
 import net.fortuna.ical4j.model.Property;
 import net.fortuna.ical4j.model.TimeZoneRegistry;
 import net.fortuna.ical4j.model.TimeZoneRegistryFactory;
+import net.fortuna.ical4j.model.ValidationException;
 import net.fortuna.ical4j.model.component.VEvent;
 import net.fortuna.ical4j.model.parameter.Value;
 import net.fortuna.ical4j.model.property.CalScale;
@@ -6453,7 +6454,11 @@ public abstract class BaseCalendarService implements CalendarService, StorageUse
 			icalEvent.getProperty(Property.DTSTART).getParameters().add(Value.DATE_TIME);
 			icalEvent.getProperties().add(new Uid(event.getId()));
 			if ( event.getDescription() != null && !event.getDescription().equals("") )
-				icalEvent.getProperties().add(new Description(event.getDescription()));
+			{	
+				String value = event.getDescription();
+				value = value.replace('\r', '\n'); 
+				icalEvent.getProperties().add(new Description(value));
+			}
 			if ( event.getLocation() != null && !event.getLocation().equals("") )
             icalEvent.getProperties().add(new Location(event.getLocation()));
 			
