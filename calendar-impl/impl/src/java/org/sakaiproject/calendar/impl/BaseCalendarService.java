@@ -65,6 +65,7 @@ import net.fortuna.ical4j.model.DateTime;
 import net.fortuna.ical4j.model.Property;
 import net.fortuna.ical4j.model.TimeZoneRegistry;
 import net.fortuna.ical4j.model.TimeZoneRegistryFactory;
+import net.fortuna.ical4j.model.ValidationException;
 import net.fortuna.ical4j.model.component.VEvent;
 import net.fortuna.ical4j.model.parameter.Value;
 import net.fortuna.ical4j.model.property.CalScale;
@@ -6526,7 +6527,11 @@ public abstract class BaseCalendarService implements CalendarService, StorageUse
 			// build the description, adding links to attachments if necessary
 			StringBuffer description = new StringBuffer("");
 			if ( event.getDescription() != null && !event.getDescription().equals("") )
-				description.append(event.getDescription());
+			{	
+				String value = event.getDescription();
+				value = value.replace('\r', '\n'); 
+				icalEvent.getProperties().add(new Description(value));
+			}
 			
 			List attachments = event.getAttachments();
 			if(attachments != null){
