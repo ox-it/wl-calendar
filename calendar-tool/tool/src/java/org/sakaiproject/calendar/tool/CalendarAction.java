@@ -4051,6 +4051,7 @@ extends VelocityPortletStateAction
 	 */
 	protected void buildOpaqueUrl1Context(VelocityPortlet portlet, Context context, RunData rundata, CalendarActionState state)
 	{
+		context.put("isMyWorkspace", isOnWorkspaceTab());
 		context.put("form-generate", BUTTON + "doOpaqueUrlGenerate");
 		context.put("form-cancel", BUTTON + "doCancel");
 	}
@@ -4066,6 +4067,7 @@ extends VelocityPortletStateAction
 			+ CalendarService.calendarOpaqueUrlReference(calendarRef);
 		context.put("opaqueUrl", opaqueUrl);
 		context.put("webcalUrl", opaqueUrl.replaceFirst("http", "webcal"));
+		context.put("isMyWorkspace", isOnWorkspaceTab());
 		context.put("form-regenerate", BUTTON + "doOpaqueUrlRegenerate");
 		context.put("form-delete", BUTTON + "doOpaqueUrlDelete");
 		context.put("form-cancel", BUTTON + "doCancel");
