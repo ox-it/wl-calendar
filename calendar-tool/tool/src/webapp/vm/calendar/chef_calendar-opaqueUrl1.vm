@@ -4,7 +4,12 @@
 	</h3>
 	<p class="instruction">
 		$tlang.getString('ical.opaqueurl.explanation')
-	</p>	
+	</p>
+	#if (!$isMyWorkspace)
+    	<p class="instruction">
+    		<em>$tlang.getString('ical.opaqueurl.myworkspace')</em>
+    	</p>
+	#end
 	<form action="#toolForm($action)" method="post">
     	<div class="act">
         	<input type="submit" class="active" accesskey="g" name="$form-generate" value="$tlang.getString('ical.opaqueurl.generate')" />

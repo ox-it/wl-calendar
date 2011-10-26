@@ -2,6 +2,11 @@
 	<h3>
 		$tlang.getString('ical.opaqueurl.header')
 	</h3>
+	#if (!$isMyWorkspace)
+    	<p class="instruction">
+    		<em>$tlang.getString('ical.opaqueurl.myworkspace')</em>
+    	</p>
+	#end
 	<p class="shorttext indnt2">
 		$tlang.getString("ical.opaqueurl.webcal")<br/>
 		<a href="$!webcalUrl" target="_new_">$webcalUrl</a>
