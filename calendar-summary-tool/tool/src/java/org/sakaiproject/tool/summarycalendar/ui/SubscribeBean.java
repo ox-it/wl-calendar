@@ -20,20 +20,12 @@
  **********************************************************************************/
 package org.sakaiproject.tool.summarycalendar.ui;
 
-import java.io.Serializable;
-
-public class MenuBean implements Serializable {
-	private static final long	serialVersionUID	= 8092527674632095783L;
-
-	public String processCalendar(){
-		return "calendar";
-	}
-
-	public String processPreferences(){
-		return "prefs";
+public class SubscribeBean {
+	
+	public SubscribeBean(){
 	}
 	
-	public String processSubscribe(){
-		return "subscribe";
+	public String cancel() {
+		return "calendar";
 	}
 }
