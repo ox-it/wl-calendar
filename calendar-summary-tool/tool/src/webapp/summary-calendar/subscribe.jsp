@@ -19,15 +19,57 @@
 <sakai:view title="#{msgs.tool_title}">
 	
 	<h3><h:outputText value="#{msgs.java_subscribe}"/></h3>
-	<sakai:instruction_message value="#{msgs.instructions_subscribe}" />
+	<sakai:instruction_message rendered="#{!SubscribeBean.opaqueUrlExists}" 
+		value="#{msgs.ical_opaqueurl_explanation}" />
+	
+	<em><sakai:instruction_message rendered="#{!SubscribeBean.myWorkspace}" 
+		value="#{msgs.ical_opaqueurl_myworkspace}" /></em>
+	
+	<%/* We render the URL(s) itself around about here... */%>
+	<h:panelGroup rendered="#{SubscribeBean.opaqueUrlExists}">
+		<sakai:instruction_message value="#{msgs.ical_opaqueurl_webcal}"/>
+		<%-- <h:outputText value="#{msgs.ical_opaqueurl_webcal}"/><br /> --%>
+		<h:outputLink value="#{SubscribeBean.url.webcalForm}" target="_new_">
+			<h:outputText value="#{SubscribeBean.url.webcalForm}" />
+		</h:outputLink>
+		<sakai:instruction_message value="#{msgs.ical_opaqueurl_http}"/>
+		<%-- <h:outputText value="#{msgs.ical_opaqueurl_http}"/><br /> --%>
+		<h:outputLink value="#{SubscribeBean.url.httpForm}" target="_new_">
+			<h:outputText value="#{SubscribeBean.url.httpForm}" />
+		</h:outputLink>	
+	</h:panelGroup>
 	
 	<h:form id="subscribeForm">
-		<%/* BUTTONS */%><p>
-		<h:panelGrid styleClass="act" columns="1">
+		<%/* BUTTONS */%>
+		<h:panelGrid rendered="#{!SubscribeBean.opaqueUrlExists}" styleClass="act" columns="2">
+			<h:commandButton
+				action="#{SubscribeBean.generate}"
+				value="#{msgs.ical_opaqueurl_generate}"				
+				styleClass="active"
+				immediate="true"
+				/>        
+			<h:commandButton
+				action="#{SubscribeBean.cancel}"
+				value="#{msgs.cancel}"/>
+		</h:panelGrid>
+		
+		<h:panelGrid rendered="#{SubscribeBean.opaqueUrlExists}" styleClass="act" columns="3">
+			<h:commandButton
+				action="#{SubscribeBean.regenerate}"
+				value="#{msgs.ical_opaqueurl_regenerate}"				
+				styleClass="active"
+				immediate="true"
+				/>
+			<h:commandButton
+				action="#{SubscribeBean.delete}"
+				value="#{msgs.ical_opaqueurl_delete}"				
+				styleClass="active"
+				immediate="true"
+				/>        
 			<h:commandButton
 				action="#{SubscribeBean.cancel}"
 				value="#{msgs.back}"/>
-		</h:panelGrid>       
+		</h:panelGrid>
 	</h:form>
 </sakai:view>
 </f:view>
