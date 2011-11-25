@@ -146,6 +146,7 @@ import org.sakaiproject.memory.api.MemoryService;
 import org.sakaiproject.site.api.Group;
 import org.sakaiproject.site.api.Site;
 import org.sakaiproject.site.api.SiteService;
+import org.sakaiproject.site.api.ToolConfiguration;
 import org.sakaiproject.thread_local.cover.ThreadLocalManager;
 import org.sakaiproject.time.api.Time;
 import org.sakaiproject.time.api.TimeBreakdown;
@@ -7293,32 +7294,32 @@ public abstract class BaseCalendarService implements CalendarService, StorageUse
 		if ( ! alias.isEmpty() )
 			aliasName =  ((Alias)alias.get(0)).getId();
 
-		// Get the list of calendars to feed out.
-		List<String> referenceList = Collections.singletonList(calRef);
-		// If it's a MyWorkspace feed get all the site this user is a member of.
-		if (m_siteService.isUserSite(ref.getContext())){
-			MergedList mergedCalendarList = new MergedList();
-			String[] channelArray = mergedCalendarList.getAllPermittedChannels(new CalendarChannelReferenceMaker(BaseCalendarService.this));
-			MergedList.EntryProvider entryProvider = new MergedListEntryProviderFixedListWrapper(
-					new CalendarEntryProvider(BaseCalendarService.this), 
-					calRef,
-					channelArray,
-					new CalendarReferenceToChannelConverter(BaseCalendarService.this));
-			mergedCalendarList.loadChannelsFromDelimitedString(
-					true,
-					false,
-					entryProvider,
-					StringUtil.trimToZero(SessionManager.getCurrentSessionUserId()),
-					channelArray, 
-					false,
-					ref.getContext());
-			referenceList = mergedCalendarList.getReferenceList();
-		}
+		List<String> referenceList = getCalendarReferences(ref.getContext());
 		Time modDate = TimeService.newTime(0);
 		// update date/time reference
 		for (String curCalRef: referenceList)
 		{
-			Time curModDate = findCalendar(curCalRef).getModified();
+			Calendar curCal = findCalendar(curCalRef);
+			/*
+			 * TODO: This null check is required to handle the references 
+			 * pertaining to external calendar subscriptions as they are 
+			 * currently broken in (at least) the 2 following ways:
+			 * 
+			 * (i) findCalendar will return null rather than a calendar object.
+			 * (ii) getCalendar(String) will return a calendar object that is 
+			 * not null, but the corresponding getModified() method returns a
+			 * date than can not be parsed.  
+			 *  
+			 * Clearly such references to need to be improved to make them 
+			 * consistent with other types as at the moment they have to be
+			 * excluded as part of this process to find the most recent modified
+			 * date. 
+			 */
+			if (curCal == null)
+			{	
+				continue;
+			}
+			Time curModDate = curCal.getModified();
 			if ( curModDate != null && curModDate.after(modDate))
 			{
 				modDate = curModDate;
@@ -7452,6 +7453,58 @@ public abstract class BaseCalendarService implements CalendarService, StorageUse
 		}
 	}	
 
+	/*
+	 * 
+	 */
+	protected List<String> getCalendarReferences(String siteId) {
+		// get merged calendars channel refs
+		String initMergeList = null;
+		try {
+			ToolConfiguration tc = m_siteService.getSite(siteId).getToolForCommonId("sakai.schedule");
+			if (tc != null) {
+				initMergeList = tc.getPlacementConfig().getProperty("mergedCalendarReferences");
+			}
+		} catch (IdUnusedException e){
+			initMergeList = null;
+		}
+		
+		// load all calendar channels (either primary or merged calendars)
+		String primaryCalendarReference = calendarReference(siteId, SiteService.MAIN_CONTAINER);
+ 		MergedList mergedCalendarList = loadChannels(siteId, primaryCalendarReference, initMergeList, null);
+ 		
+		// add external calendar subscriptions
+        List referenceList = mergedCalendarList.getReferenceList();
+        Set subscriptionRefList = ExternalCalendarSubscriptionService.getCalendarSubscriptionChannelsForChannels(referenceList);
+        referenceList.addAll(subscriptionRefList);
+				
+		return referenceList;
+	}
+	
+	/**
+	 ** loadChannels -- load specified primaryCalendarReference or merged
+	 ** calendars if initMergeList is defined
+	 **/
+	protected MergedList loadChannels(String siteId, String primaryCalendarReference, String initMergeList, MergedList.EntryProvider entryProvider) {
+		MergedList mergedCalendarList = new MergedList();
+		String[] channelArray = null;
+		boolean isOnWorkspaceTab = m_siteService.isUserSite(siteId);
+
+		// Figure out the list of channel references that we'll be using.
+		// MyWorkspace is special: if not superuser, and not otherwise defined,
+		// get all channels
+		if (isOnWorkspaceTab && !SecurityService.isSuperUser() && initMergeList == null) {
+			channelArray = mergedCalendarList.getAllPermittedChannels(new CalendarChannelReferenceMaker(this));
+		} else {
+			channelArray = mergedCalendarList.getChannelReferenceArrayFromDelimitedString(primaryCalendarReference, initMergeList);
+		}
+		if (entryProvider == null) {
+			entryProvider = new MergedListEntryProviderFixedListWrapper(new CalendarEntryProvider(this), primaryCalendarReference, channelArray, new CalendarReferenceToChannelConverter(this));
+		}
+		mergedCalendarList.loadChannelsFromDelimitedString(isOnWorkspaceTab, false, entryProvider, SessionManager.getCurrentSessionUserId(), channelArray, SecurityService.isSuperUser(), siteId);
+
+		return mergedCalendarList;
+	}
+	
 	/** 
 	 ** Comparator for sorting Group objects
 	 **/
