@@ -2388,9 +2388,6 @@ public abstract class BaseCalendarService implements CalendarService, StorageUse
 		 **/
 		public boolean getExportEnabled()
 		{
-			if (m_siteService.isUserSite(m_context)) {
-				return m_serverConfigurationService.getBoolean("ical.myworkspace.auto.export", false);
-			}
 			String enable = m_properties.getProperty(CalendarService.PROP_ICAL_ENABLE);
 			return Boolean.valueOf(enable);
 		}
