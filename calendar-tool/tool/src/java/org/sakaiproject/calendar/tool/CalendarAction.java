@@ -2153,6 +2153,17 @@ extends VelocityPortletStateAction
 		{
 			return CalendarService.allowImportCalendar(calendarReference);
 		}
+		
+		/**
+		 * Return true if the current calendar can be exported.
+		 * @param calendarReference The calendar reference.
+		 */
+		static public boolean allowExport(String calendarReference)
+		{
+			Reference reference = EntityManager.newReference(calendarReference);
+			String siteId = reference.getContext();
+			return !SiteService.isUserSite(siteId) && CalendarService.allowImportCalendar(calendarReference);
+		}
 
 		/**
 		 * Returns true if the user is allowed to subscribe external calendars 
@@ -3012,9 +3023,12 @@ extends VelocityPortletStateAction
 			CalendarPermissions.allowImport(
 				state.getPrimaryCalendarReference()),
 			CalendarPermissions.allowSubscribe(
-					state.getPrimaryCalendarReference()), 
+				state.getPrimaryCalendarReference()), 
 			CalendarPermissions.allowSubscribeThis(
-					state.getPrimaryCalendarReference()));
+				state.getPrimaryCalendarReference()),
+			CalendarPermissions.allowExport(
+				state.getPrimaryCalendarReference())
+			);
 		
 		context.put(
 				"allowDelete",
@@ -3157,7 +3171,10 @@ extends VelocityPortletStateAction
 			CalendarPermissions.allowSubscribe(
 				state.getPrimaryCalendarReference()), 
 			CalendarPermissions.allowSubscribeThis(
-				state.getPrimaryCalendarReference()));
+				state.getPrimaryCalendarReference()),
+			CalendarPermissions.allowExport(
+				state.getPrimaryCalendarReference())
+			);
 		
 		// added by zqian for toolbar
 		context.put("allow_new", Boolean.valueOf(allowed));
@@ -3269,7 +3286,10 @@ extends VelocityPortletStateAction
 			CalendarPermissions.allowSubscribe(
 				state.getPrimaryCalendarReference()), 
 			CalendarPermissions.allowSubscribeThis(
-				state.getPrimaryCalendarReference()));
+				state.getPrimaryCalendarReference()),
+			CalendarPermissions.allowExport(
+				state.getPrimaryCalendarReference())
+			);
 		
 		state.setState("month");
 		
@@ -3593,7 +3613,10 @@ extends VelocityPortletStateAction
 			CalendarPermissions.allowSubscribe(
 				state.getPrimaryCalendarReference()), 
 			CalendarPermissions.allowSubscribeThis(
-				state.getPrimaryCalendarReference()));
+				state.getPrimaryCalendarReference()),
+			CalendarPermissions.allowExport(
+				state.getPrimaryCalendarReference())
+			);
 		
 		context.put("permissionallowed",Boolean.valueOf(allowed));
 		context.put("tlang",rb);
@@ -3829,7 +3852,10 @@ extends VelocityPortletStateAction
 			CalendarPermissions.allowSubscribe(
 				state.getPrimaryCalendarReference()), 
 			CalendarPermissions.allowSubscribeThis(
-				state.getPrimaryCalendarReference()));
+				state.getPrimaryCalendarReference()),
+			CalendarPermissions.allowExport(
+				state.getPrimaryCalendarReference())
+			);
 		
 		calObj.setDay(yearObj.getYear(),monthObj1.getMonth(),dayObj.getDay());
 		
@@ -4008,7 +4034,7 @@ extends VelocityPortletStateAction
 			+ CalendarService.calendarICalReference(calendarRef);
 		context.put("icalUrl", icalUrl );
 		
-		boolean exportAllowed = !SiteService.isUserSite(calendarObj.getContext()) && CalendarPermissions.allowImport( calId );
+		boolean exportAllowed = CalendarPermissions.allowImport( calId );
 		context.put("allow_export", String.valueOf(exportAllowed) );
 		
 		boolean exportEnabled = CalendarService.getExportEnabled(calId);
@@ -7378,7 +7404,10 @@ extends VelocityPortletStateAction
 			CalendarPermissions.allowSubscribe(
 				state.getPrimaryCalendarReference()), 
 			CalendarPermissions.allowSubscribeThis(
-				state.getPrimaryCalendarReference()));
+				state.getPrimaryCalendarReference()),
+			CalendarPermissions.allowExport(
+				state.getPrimaryCalendarReference())
+			);
 		
 		// added by zqian for toolbar
 		context.put("allow_new", Boolean.valueOf(allowed));
@@ -7559,7 +7588,8 @@ extends VelocityPortletStateAction
 	boolean allow_modify_calendar_properties,
 	boolean allow_import_export,
 	boolean allow_subscribe, 
-	boolean allow_subscribe_this)
+	boolean allow_subscribe_this,
+	boolean allow_export)
 	{
 		Menu bar = new MenuImpl(portlet, runData, "CalendarAction");
 		
@@ -7591,7 +7621,7 @@ extends VelocityPortletStateAction
 		
 		// See if we are allowed to export items.
 		String calId = state.getPrimaryCalendarReference();
-		if ( (allow_import_export || CalendarService.getExportEnabled(calId)) && 
+		if ( (allow_export || CalendarService.getExportEnabled(calId)) && 
 			  ServerConfigurationService.getBoolean("ical.experimental",false))
 		{
 			bar.add( new MenuEntry(rb.getString("java.export"), null, allow_new, MenuItem.CHECKED_NA, "doIcalExportName") );
