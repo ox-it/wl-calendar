@@ -1269,7 +1269,7 @@ public abstract class BaseCalendarService implements CalendarService, StorageUse
 				}
 				else if (REF_TYPE_CALENDAR_ICAL.equals(ref.getSubType()))
 				{
-					handleAccessIcal(res, ref, calRef);
+					handleAccessIcal(req, res, ref, calRef);
 				}
 				else if (REF_TYPE_CALENDAR_OPAQUEURL.equals(ref.getSubType()))
 				{
@@ -7331,9 +7331,10 @@ public abstract class BaseCalendarService implements CalendarService, StorageUse
 		}
 	}
 	
-	protected void handleAccessIcalCommon(
+	protected void handleAccessIcalCommon(HttpServletRequest req,
 			HttpServletResponse res, Reference ref, String calRef)
 			throws EntityPermissionException, PermissionException, IOException {
+		
 		// Extract the alias name to use for the filename.
 		List alias =  m_aliasService.getAliases(calRef);
 		String aliasName = "schedule.ics";
@@ -7344,6 +7345,16 @@ public abstract class BaseCalendarService implements CalendarService, StorageUse
 		List<String> referenceList = Collections.singletonList(calRef);
 		// If it's a MyWorkspace feed get all the site this user is a member of.
 		if (m_siteService.isUserSite(ref.getContext())){
+			
+			// Ok so we need to check to see if we've handled this reference before.
+			// This is to prevent loops when including calendars, as it's only the myworkspace
+			// that currently includes other calendars we only do the check in here.
+			if (getUserAgent().equals(req.getHeader("User-Agent"))) {
+				res.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+				M_log.warn("Reject internal request for: "+ calRef);
+				return;
+			}
+			
 			MergedList mergedCalendarList = new MergedList();
 			String[] channelArray = mergedCalendarList.getAllPermittedChannels(new CalendarChannelReferenceMaker(BaseCalendarService.this));
 			MergedList.EntryProvider entryProvider = new MergedListEntryProviderFixedListWrapper(
@@ -7382,7 +7393,7 @@ public abstract class BaseCalendarService implements CalendarService, StorageUse
 		printICalSchedule(calendarName, referenceList, res.getOutputStream());
 	}
 	
-	protected void handleAccessIcal(
+	protected void handleAccessIcal(HttpServletRequest req,
 			HttpServletResponse res, Reference ref, String calRef)
 			throws EntityPermissionException, EntityNotDefinedException {
 		// check if ical export is enabled
@@ -7398,7 +7409,7 @@ public abstract class BaseCalendarService implements CalendarService, StorageUse
 		
 		try
 		{
-			handleAccessIcalCommon(res, ref, calRef);
+			handleAccessIcalCommon(req, res, ref, calRef);
 
 			OutputStream out = null;
 			try
@@ -7435,7 +7446,7 @@ public abstract class BaseCalendarService implements CalendarService, StorageUse
 	}
 	
 	protected void handleAccessOpaqueUrl(
-			HttpServletRequest request, HttpServletResponse res, Reference ref, String calRef)
+			HttpServletRequest req, HttpServletResponse res, Reference ref, String calRef)
 			throws EntityPermissionException, EntityNotDefinedException {
 		
 		// Get the user UUID from any opaque GUID within the reference:
@@ -7463,12 +7474,12 @@ public abstract class BaseCalendarService implements CalendarService, StorageUse
 			}
 			String eid = UserDirectoryService.getUserEid(userId);
 			Authentication authn = new org.sakaiproject.util.Authentication(userId, eid);
-			if (UsageSessionService.login(authn, request))
+			if (UsageSessionService.login(authn, req))
 			{
 				// Make sure the current user can access this calendar first.
 				if (allowGetCalendar(calRef)) 
 				{
-					handleAccessIcalCommon(res, ref, calRef);
+					handleAccessIcalCommon(req, res, ref, calRef);
 				}
 				else
 				{
@@ -7506,6 +7517,15 @@ public abstract class BaseCalendarService implements CalendarService, StorageUse
 		public int compare(Object o1, Object o2) {
 			return ((Group)o1).getTitle().compareToIgnoreCase( ((Group)o2).getTitle() );
 		}
+	}
+	
+
+	/**
+	 * Get the user agent we should use for request to get other caledars.
+	 * @return The user agent.
+	 */
+	String getUserAgent() {
+		return "Sakai/"+ m_serverConfigurationService.getString("version.sakai", "?") + " (Calendar Subscription)";
 	}
 	
 } // BaseCalendarService
