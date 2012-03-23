@@ -364,7 +364,7 @@ public class BaseExternalCalendarSubscriptionService implements
 	{
 		Set<String> subscriptionChannels = new HashSet<String>();
 		Set<String> subscriptionUrlsAdded = new HashSet<String>();
-		if(isOnWorkspaceTab() && (!mergeIntoMyworkspace || m_securityService.isSuperUser())) {
+		if(isMyWorkspace(primaryCalendarReference) && (!mergeIntoMyworkspace || m_securityService.isSuperUser())) {
 			channels = new ArrayList<Object>();
 			channels.add(primaryCalendarReference);
 		}
@@ -752,16 +752,14 @@ public class BaseExternalCalendarSubscriptionService implements
 	
 	/**
 	 * See if the current tab is the workspace tab (i.e. user site)
+	 * @param primaryCalendarReference The primary calendar reference.
 	 * @return true if we are currently on the "My Workspace" tab.
 	 */
-	private boolean isOnWorkspaceTab()
+	private boolean isMyWorkspace(String primaryCalendarReference)
 	{
-		Placement p = m_toolManager.getCurrentPlacement();
-		// When the request comes in from somewhere other than the portal then we don't have a placement
-		// Examples of non-portal URLs are /access
-		if (p == null) return false;
-		String c = p.getContext();
-		return m_siteService.isUserSite(c);
+		Reference ref = m_entityManager.newReference(primaryCalendarReference);
+		String siteId = ref.getContext();
+		return m_siteService.isUserSite(siteId);
 	}
 
 	// ######################################################
