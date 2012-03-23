@@ -75,8 +75,6 @@ import org.sakaiproject.site.api.ToolConfiguration;
 import org.sakaiproject.time.api.Time;
 import org.sakaiproject.time.api.TimeRange;
 import org.sakaiproject.time.cover.TimeService;
-import org.sakaiproject.tool.cover.SessionManager;
-import org.sakaiproject.tool.cover.ToolManager;
 import org.sakaiproject.util.BaseResourcePropertiesEdit;
 import org.sakaiproject.util.FormattedText;
 import org.sakaiproject.util.commonscodec.CommonsCodecBase64;
@@ -349,7 +347,8 @@ public class BaseExternalCalendarSubscriptionService implements
 	{
 		Set<String> subscriptionChannels = new HashSet<String>();
 		Set<String> subscriptionUrlsAdded = new HashSet<String>();
-		if(isOnWorkspaceTab() && (!mergeIntoMyworkspace || SecurityService.isSuperUser())) {
+		
+		if(isMyWorkspace(primaryCalendarReference) && (!mergeIntoMyworkspace || SecurityService.isSuperUser())) {
 			channels = new ArrayList<Object>();
 			channels.add(primaryCalendarReference);
 		}
@@ -730,11 +729,14 @@ public class BaseExternalCalendarSubscriptionService implements
 	
 	/**
 	 * See if the current tab is the workspace tab (i.e. user site)
+	 * @param primaryCalendarReference The primary calendar reference.
 	 * @return true if we are currently on the "My Workspace" tab.
 	 */
-	private boolean isOnWorkspaceTab()
+	private boolean isMyWorkspace(String primaryCalendarReference)
 	{
-		return m_siteService.isUserSite(ToolManager.getCurrentPlacement().getContext());
+		Reference ref = m_entityManager.newReference(primaryCalendarReference);
+		String siteId = ref.getContext();
+		return m_siteService.isUserSite(siteId);
 	}
 
 	// ######################################################
