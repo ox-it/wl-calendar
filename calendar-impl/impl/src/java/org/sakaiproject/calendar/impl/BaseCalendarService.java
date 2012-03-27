@@ -1255,6 +1255,7 @@ public abstract class BaseCalendarService implements CalendarService, StorageUse
 					Collection copyrightAcceptedRefs) throws EntityPermissionException, EntityNotDefinedException,
 					EntityAccessOverloadException, EntityCopyrightException
 			{
+				// calRef is the reference to the calendar without any aliases in it.
 				String calRef = calendarReference(ref.getContext(), SiteService.MAIN_CONTAINER);
 				// we only access the pdf & ical reference
 				if ( !REF_TYPE_CALENDAR_PDF.equals(ref.getSubType()) &&
@@ -7332,16 +7333,10 @@ public abstract class BaseCalendarService implements CalendarService, StorageUse
 		}
 	}
 	
-	protected void handleAccessIcalCommon(HttpServletRequest req,
+	protected void handleAccessIcalSite(HttpServletRequest req,
 			HttpServletResponse res, Reference ref, String calRef)
 			throws EntityPermissionException, PermissionException, IOException {
 		
-		// Extract the alias name to use for the filename.
-		List alias =  m_aliasService.getAliases(calRef);
-		String aliasName = "schedule.ics";
-		if ( ! alias.isEmpty() )
-			aliasName =  ((Alias)alias.get(0)).getId();
-
 		// Ok so we need to check to see if we've handled this reference before.
 		// This is to prevent loops when including calendars, as it's only the myworkspace
 		// that currently includes other calendars we only do the check in here.	
@@ -7351,7 +7346,8 @@ public abstract class BaseCalendarService implements CalendarService, StorageUse
 			return;
 		}
 
-		List<String> referenceList = getCalendarReferences(ref.getContext());
+		String siteId = ref.getContext();
+		List<String> referenceList = getCalendarReferences(siteId);
 		Time modDate = TimeService.newTime(0);
 		// update date/time reference
 		for (String curCalRef: referenceList)
@@ -7382,16 +7378,16 @@ public abstract class BaseCalendarService implements CalendarService, StorageUse
 				modDate = curModDate;
 			}
 		}
+		
+		String aliasName = lookupAliasName(calRef);
 		res.addHeader("Content-Disposition", "inline; filename=\"" + aliasName + "\"");
 		res.setContentType(ICAL_MIME_TYPE);
 		res.setDateHeader("Last-Modified", modDate.getTime() );
-		String calendarName = "";
-		try {
-			calendarName = m_siteService.getSite(ref.getContext()).getTitle();
-		} catch (IdUnusedException e) {
-		}
+		String calendarName = lookupCalendarName(siteId);
 		printICalSchedule(calendarName, referenceList, res.getOutputStream());
 	}
+
+
 	
 	protected void handleAccessIcal(HttpServletRequest req,
 			HttpServletResponse res, Reference ref, String calRef)
@@ -7402,6 +7398,7 @@ public abstract class BaseCalendarService implements CalendarService, StorageUse
 			throw new EntityNotDefinedException(ref.getReference());
 		}
 		// Make sure the current user can access this calendar first.
+		// For exported calendars allowGetCalendar works as it has a special case.
 		if (m_siteService.isUserSite(ref.getContext()) && !allowGetCalendar(calRef)) 
 		{
 			throw new EntityPermissionException(SessionManager.getCurrentSessionUserId(), SECURE_READ, calRef);
@@ -7409,7 +7406,23 @@ public abstract class BaseCalendarService implements CalendarService, StorageUse
 		
 		try
 		{
-			handleAccessIcalCommon(req, res, ref, calRef);
+			String aliasName = lookupAliasName(calRef);
+			
+			
+			res.addHeader("Content-Disposition", "inline; filename=\"" + aliasName + "\"");
+			res.setContentType(ICAL_MIME_TYPE);
+
+			Calendar calendar = getCalendar(calRef);
+			if (calendar != null)
+			{
+				Time modDate = calendar.getModified();
+				if (modDate != null ) {
+					res.setDateHeader("Last-Modified", modDate.getTime() );
+				}
+			}
+			
+			String calendarName = lookupCalendarName(ref.getContext());
+			printICalSchedule(calendarName, Collections.singletonList(calRef), res.getOutputStream());
 
 			OutputStream out = null;
 			try
@@ -7435,14 +7448,27 @@ public abstract class BaseCalendarService implements CalendarService, StorageUse
 				}
 			}
 		}
-		catch (EntityPermissionException epe)
-		{
-			throw epe;
-		}
 		catch (Throwable t)
 		{
 			throw new EntityNotDefinedException(ref.getReference());
 		}
+	}
+
+	protected String lookupAliasName(String calRef) {
+		List alias =  m_aliasService.getAliases(calRef);
+		String aliasName = "schedule.ics";
+		if ( ! alias.isEmpty() )
+			aliasName =  ((Alias)alias.get(0)).getId();
+		return aliasName;
+	}
+
+	protected String lookupCalendarName(String siteId) {
+		String calendarName = "";
+		try {
+			calendarName = m_siteService.getSite(siteId).getTitle();
+		} catch (IdUnusedException e) {
+		}
+		return calendarName;
 	}
 	
 	protected void handleAccessOpaqueUrl(
@@ -7479,7 +7505,7 @@ public abstract class BaseCalendarService implements CalendarService, StorageUse
 				// Make sure the current user can access this calendar first.
 				if (allowGetCalendar(calRef)) 
 				{
-					handleAccessIcalCommon(req, res, ref, calRef);
+					handleAccessIcalSite(req, res, ref, calRef);
 				}
 				else
 				{
@@ -7515,6 +7541,8 @@ public abstract class BaseCalendarService implements CalendarService, StorageUse
 	 */
 	protected List<String> getCalendarReferences(String siteId) {
 		// get merged calendars channel refs
+		// Generally the service doesn't know about the merging of multiple calendars
+		// into one as it's handled by the tool.
 		String initMergeList = null;
 		try {
 			ToolConfiguration tc = m_siteService.getSite(siteId).getToolForCommonId("sakai.schedule");
