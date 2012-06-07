@@ -6540,8 +6540,8 @@ public abstract class BaseCalendarService implements CalendarService, StorageUse
 				}
 			}
 			if(description.length() > 0)
-				icalEvent.getProperties().add(new Description(description.toString()));			
-			
+				icalEvent.getProperties().add(new Description(description.toString().replace('\r', '\n')));
+
 			if ( event.getLocation() != null && !event.getLocation().equals("") )
             icalEvent.getProperties().add(new Location(event.getLocation()));
 			
