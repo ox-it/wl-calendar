@@ -6526,10 +6526,8 @@ public abstract class BaseCalendarService implements CalendarService, StorageUse
 			// build the description, adding links to attachments if necessary
 			StringBuffer description = new StringBuffer("");
 			if ( event.getDescription() != null && !event.getDescription().equals("") )
-			{	
-				String value = event.getDescription();
-				value = value.replace('\r', '\n'); 
-				icalEvent.getProperties().add(new Description(value));
+			{
+				description.append(event.getDescription());
 			}
 			
 			List attachments = event.getAttachments();
