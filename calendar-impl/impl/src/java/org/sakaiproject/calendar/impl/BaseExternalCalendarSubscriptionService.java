@@ -696,18 +696,17 @@ public class BaseExternalCalendarSubscriptionService implements
 		}
 		catch (PermissionException e)
 		{
-			// This will never be called (for now)
-			e.printStackTrace();
+			m_log.error("Permission exception", e);
 		}
 		catch (MalformedURLException e)
 		{
 			m_log.error("Mal-formed URL in calendar subscription '" + calendarName
-					+ "': " + url);
+					+ "': " + url, e);
 		}
 		catch (IOException e)
 		{
 			m_log.error("Unable to read calendar subscription '" + calendarName
-					+ "' from URL (I/O Error): " + url);
+					+ "' from URL (I/O Error): " + url, e);
 		}
 		catch (Exception e)
 		{
@@ -721,7 +720,7 @@ public class BaseExternalCalendarSubscriptionService implements
 				try {
 					stream.close();
 				} catch (IOException e) {
-					// Ignore
+					m_log.error("Error while closing stream", e);
 				}
 			}
 		}
