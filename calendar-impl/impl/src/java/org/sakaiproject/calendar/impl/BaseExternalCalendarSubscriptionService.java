@@ -31,6 +31,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -119,10 +120,10 @@ public class BaseExternalCalendarSubscriptionService implements
 	private Map columnMap = null;
 
 	/** Cache map of Institutional Calendars: <String url, Calendar cal> */
-	private Map<String, ExternalSubscription> institutionalSubscriptions = null;
+	private SubscriptionCacheMap institutionalSubscriptions = null;
 
 	/** Cache map of user Calendars: <String url, Calendar cal> */
-	private Map<String, ExternalSubscription> userSubscriptions = null;
+	private SubscriptionCacheMap userSubscriptions = null;
 
 	// ######################################################
 	// Spring services
@@ -178,7 +179,7 @@ public class BaseExternalCalendarSubscriptionService implements
 		mergeIntoMyworkspace = m_configurationService.getBoolean(SAK_PROP_EXTSUBSCRIPTIONS_MERGEINTOMYWORKSPACE, true); 
 		m_log.info("init(): enabled: " + enabled + ", merge from other sites into My Workspace? "+mergeIntoMyworkspace);
 
-		if (enabled)
+		if (enabled)	
 		{
 			// iCal column map
 			try
@@ -218,10 +219,8 @@ public class BaseExternalCalendarSubscriptionService implements
 
 			// add reload-on-expire listener
 			SubscriptionExpiredListener listener = new SubscriptionReloadOnExpiredListener();
-			((SubscriptionCacheMap) institutionalSubscriptions)
-					.setSubscriptionExpiredListener(listener);
-			((SubscriptionCacheMap) userSubscriptions)
-					.setSubscriptionExpiredListener(listener);
+			institutionalSubscriptions.setSubscriptionExpiredListener(listener);
+			userSubscriptions.setSubscriptionExpiredListener(listener);
 
 			// load institutional calendar subscriptions
 			loadInstitutionalSubscriptions();
@@ -234,11 +233,10 @@ public class BaseExternalCalendarSubscriptionService implements
 		try
 		{
 			if (institutionalSubscriptions != null) {
-				((SubscriptionCacheMap) institutionalSubscriptions)
-						.stopCleanerThread();
+				institutionalSubscriptions.stopCleanerThread();
 			}
 			if (userSubscriptions != null) {
-				((SubscriptionCacheMap) userSubscriptions).stopCleanerThread();
+				userSubscriptions.stopCleanerThread();
 			}
 		}
 		catch (Throwable e)

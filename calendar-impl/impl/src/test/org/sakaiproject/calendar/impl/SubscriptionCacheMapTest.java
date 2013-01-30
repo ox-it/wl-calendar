@@ -9,27 +9,27 @@ import org.sakaiproject.calendar.api.ExternalSubscription;
 
 public class SubscriptionCacheMapTest extends TestCase {
 
-	private SubscriptionCacheMap map;
+	private SubscriptionCacheMap subscriptionCacheMap;
 
 	protected void setUp() throws Exception {
 		super.setUp();
-		map = new SubscriptionCacheMap(16, 100);
+		subscriptionCacheMap = new SubscriptionCacheMap(16, 100);
 	}
 
 	protected void tearDown() throws Exception {
-		map.stopCleanerThread();
+		subscriptionCacheMap.stopCleanerThread();
 	}
 
 	public void testMap() {
-		//map.setSubscriptionExpiredListener(listener)
+		//subscriptionCacheMap.setSubscriptionExpiredListener(listener)
 		ExternalSubscription sub = new BaseExternalSubscription();
-		map.put("url", sub);
-		assertEquals(1, map.size());
+		subscriptionCacheMap.put("url", sub);
+		assertEquals(1, subscriptionCacheMap.values().size());
 	}
 
 	/**
 	 * This test shows how you can end up with an big keyset from a LinkedHashMap when you
-	 * don't perform any locking on the Map. You may need multiple core machine to reproduce 
+	 * don't perform any locking on the subscriptionCacheMap. You may need multiple core machine to reproduce 
 	 * it.
 	 */
 	public void testMapMultipleThreads() throws InterruptedException {
@@ -44,7 +44,7 @@ public class SubscriptionCacheMapTest extends TestCase {
 			@Override
 			public void run() {
 				for (int j = 0; j < limit; j++) {
-					map.put("url",sub);
+					subscriptionCacheMap.put("url",sub);
 				}
 			}
 		};
@@ -55,7 +55,7 @@ public class SubscriptionCacheMapTest extends TestCase {
 			@Override
 			public void run() {
 				for (int j = 0; j < limit; j++) {
-					map.get("url");
+					subscriptionCacheMap.get("url");
 				}
 			}
 		};
@@ -67,11 +67,10 @@ public class SubscriptionCacheMapTest extends TestCase {
 		
 		
 		// Don't always trust the methods when things are wrong.
-		assertEquals(1, map.size());
-		assertEquals(1, map.keySet().size());
+		assertEquals(1, subscriptionCacheMap.values().size());
 		// Do our own counting.
 		int count = 0;
-		for (String key : map.keySet()) {
+		for (Object value : subscriptionCacheMap.values()) {
 			count++;
 			// This actually loops around and around.
 			//if (count % 10000 == 0) System.out.println(count);

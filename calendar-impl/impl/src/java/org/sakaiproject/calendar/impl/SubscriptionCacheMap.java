@@ -1,6 +1,7 @@
 package org.sakaiproject.calendar.impl;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -13,19 +14,15 @@ import org.sakaiproject.calendar.api.ExternalSubscription;
 import org.sakaiproject.calendar.impl.BaseExternalCalendarSubscriptionService.SubscriptionExpiredListener;
 
 /**
- * Hash table and linked list implementation of the Map interface,
- * access-ordered. Older entries will be removed if map exceeds the maximum
- * capacity specified.
+ * Almost a Map that holds the cached calendars.
+ * External methods are synchronized because LinkedHashMap is not thread safe.
  * 
  * @author nfernandes
  */
-public class SubscriptionCacheMap extends
-		LinkedHashMap<String, ExternalSubscription> implements Runnable {
+public class SubscriptionCacheMap implements Runnable {
 	
 	private static final Log m_log = LogFactory
 			.getLog(SubscriptionCacheMap.class);
-
-	private static final long serialVersionUID = 1L;
 
 	private final static float DEFAULT_LOAD_FACTOR = 0.75f;
 
@@ -39,6 +36,7 @@ public class SubscriptionCacheMap extends
 
 	private Object threadCleanerRunningSemaphore = new Object();
 
+	private LinkedHashMap<String, ExternalSubscription> map;
 	private Map<String, Long> cacheTime;
 
 	private SubscriptionExpiredListener listener;
@@ -63,7 +61,12 @@ public class SubscriptionCacheMap extends
 	 *            cache.
 	 */
 	public SubscriptionCacheMap(int maxCachedEntries, int maxCachedTime) {
-		super(maxCachedEntries, DEFAULT_LOAD_FACTOR, true);
+		map = new LinkedHashMap<String, ExternalSubscription>(maxCachedEntries, DEFAULT_LOAD_FACTOR, true) {
+
+			protected boolean removeEldestEntry(Entry<String, ExternalSubscription> arg0) {
+				return size() > SubscriptionCacheMap.this.maxCachedEntries;
+			};
+		};
 		this.maxCachedEntries = maxCachedEntries;
 		this.maxCachedTime = maxCachedTime;
 		if (maxCachedTime > 0) {
@@ -85,90 +88,61 @@ public class SubscriptionCacheMap extends
 		}
 	}
 
-	@Override
-	public ExternalSubscription get(Object arg0) {
-		ExternalSubscription e = super.get(arg0);
+	public synchronized ExternalSubscription get(Object arg0) {
+		ExternalSubscription e = map.get(arg0);
 		return e;
 	}
 
-	@Override
-	public ExternalSubscription put(String key, ExternalSubscription value) {
+	public synchronized ExternalSubscription put(String key, ExternalSubscription value) {
 		if (maxCachedTime > 0 && key != null) {
 			cacheTime.put(key, System.currentTimeMillis());
 		}
-		return super.put(key, value);
+		return map.put(key, value);
 	}
 
-	@Override
-	public void putAll(Map<? extends String, ? extends ExternalSubscription> map) {
+	public synchronized void putAll(Map<String,ExternalSubscription> map) {
 		if (maxCachedTime > 0 && map != null) {
 			for (String key : map.keySet()) {
 				cacheTime.put(key, System.currentTimeMillis());
 			}
 		}
 		if (map != null)
-			super.putAll(map);
+			map.putAll(map);
 	}
 
-	@Override
-	public void clear() {
+	public synchronized void clear() {
 		if (maxCachedTime > 0) {
 			cacheTime.clear();
 		}
-		super.clear();
+		map.clear();
 	}
-
-	@Override
-	public ExternalSubscription remove(Object key) {
+	public synchronized ExternalSubscription remove(Object key) {
 		// Doesn't actually get called when items are removed through size
 		// expiry.
 		if (maxCachedTime > 0 && key != null) {
 			if (cacheTime.containsKey(key))
 				cacheTime.remove(key);
 		}
-		return super.remove(key);
+		return map.remove(key);
+	}
+
+	public synchronized boolean containsKey(String subscriptionUrl) {
+		return map.containsKey(subscriptionUrl);
+	}
+
+	public synchronized Collection<ExternalSubscription> values() {
+		return map.values();
 	}
 
 	public void setMaxCachedEntries(int maxCachedEntries) {
 		this.maxCachedEntries = maxCachedEntries;
 	}
 
-	@Override
-	protected boolean removeEldestEntry(Entry<String, ExternalSubscription> arg0) {
-		return size() > maxCachedEntries;
-	}
-
 	public void run() {
 		try {
 			while (threadCleanerRunning) {
 				// clean expired entries
-				List<String> toClear = new ArrayList<String>();
-				for (String key : this.keySet()) {
-					// Might be null (bad), autoboxing..
-					long cachedFor = System.currentTimeMillis()
-							- cacheTime.get(key);
-					if (cachedFor > maxCachedTime) {
-						toClear.add(key);
-					}
-				}
-				// cleaning is not object removal but, Calendar removal from
-				// value (ExternalSubscription)
-				for (String url : toClear) {
-					synchronized (listenerLock) {
-						ExternalSubscription e = this.get(url);
-						if (e != null) {
-							e.setCalendar(null);
-							this.put(url, e); // This refreshes the timeout of
-												// the cache entry, but doesn't
-												// change insertion order.
-							m_log.debug("Cleared calendar for expired Calendar Subscription: "
-									+ url);
-							if (listener != null) {
-								listener.subscriptionExpired(url, e);
-							}
-						}
-					}
-				}
+				cleanup();
 
 				// sleep if no work to do
 				if (!threadCleanerRunning)
@@ -196,6 +170,36 @@ public class SubscriptionCacheMap extends
 		}
 	}
 
+	private synchronized void cleanup() {
+		List<String> toClear = new ArrayList<String>();
+		for (String key : map.keySet()) {
+			// Might be null (bad), autoboxing..
+			long cachedFor = System.currentTimeMillis()
+					- cacheTime.get(key);
+			if (cachedFor > maxCachedTime) {	
+				toClear.add(key);
+			}
+		}
+		// cleaning is not object removal but, Calendar removal from
+		// value (ExternalSubscription)
+		for (String url : toClear) {
+			synchronized (listenerLock) {
+				ExternalSubscription e = this.get(url);
+				if (e != null) {
+					e.setCalendar(null);
+					this.put(url, e); // This refreshes the timeout of
+										// the cache entry, but doesn't
+										// change insertion order.
+					m_log.debug("Cleared calendar for expired Calendar Subscription: "
+							+ url);
+					if (listener != null) {
+						listener.subscriptionExpired(url, e);
+					}
+				}
+			}
+		}
+	}
+
 	/** Start the update thread */
 	private void startCleanerThread() {
 		threadCleanerRunning = true;
@@ -211,4 +215,6 @@ public class SubscriptionCacheMap extends
 			threadCleanerRunningSemaphore.notifyAll();
 		}
 	}
+
+
 }
