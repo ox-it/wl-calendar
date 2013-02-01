@@ -31,18 +31,16 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.Stack;
 import java.util.Vector;
-import java.util.Map.Entry;
-import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -104,13 +102,13 @@ public class BaseExternalCalendarSubscriptionService implements
 	private final static int DEFAULT_MAX_INST_CACHED_ENTRIES = 16;
 	
 	/** Default max cached external subscription entries (user) */
-	private final static int DEFAULT_MAX_USER_CACHED_ENTRIES = 16;
+	final static int DEFAULT_MAX_USER_CACHED_ENTRIES = 16;
 
 	/** Default max cached external subscription time in minutes (institutional) */
 	private final static int DEFAULT_MAX_INST_CACHED_TIME = 2 * 60; // 2h
 
 	/** Default max cached external subscription time in minutes (user) */
-	private final static int DEFAULT_MAX_USER_CACHED_TIME = 2 * 60; // 2h
+	final static int DEFAULT_MAX_USER_CACHED_TIME = 2 * 60; // 2h
 
 	/** iCal external subscription enable flag */
 	private boolean enabled = false;
@@ -122,10 +120,10 @@ public class BaseExternalCalendarSubscriptionService implements
 	private Map columnMap = null;
 
 	/** Cache map of Institutional Calendars: <String url, Calendar cal> */
-	private Map<String, ExternalSubscription> institutionalSubscriptions = null;
+	private SubscriptionCacheMap institutionalSubscriptions = null;
 
 	/** Cache map of user Calendars: <String url, Calendar cal> */
-	private Map<String, ExternalSubscription> userSubscriptions = null;
+	private SubscriptionCacheMap userSubscriptions = null;
 
 	// ######################################################
 	// Spring services
@@ -181,7 +179,7 @@ public class BaseExternalCalendarSubscriptionService implements
 		mergeIntoMyworkspace = m_configurationService.getBoolean(SAK_PROP_EXTSUBSCRIPTIONS_MERGEINTOMYWORKSPACE, true); 
 		m_log.info("init(): enabled: " + enabled + ", merge from other sites into My Workspace? "+mergeIntoMyworkspace);
 
-		if (enabled)
+		if (enabled)	
 		{
 			// iCal column map
 			try
@@ -221,10 +219,8 @@ public class BaseExternalCalendarSubscriptionService implements
 
 			// add reload-on-expire listener
 			SubscriptionExpiredListener listener = new SubscriptionReloadOnExpiredListener();
-			((SubscriptionCacheMap) institutionalSubscriptions)
-					.setSubscriptionExpiredListener(listener);
-			((SubscriptionCacheMap) userSubscriptions)
-					.setSubscriptionExpiredListener(listener);
+			institutionalSubscriptions.setSubscriptionExpiredListener(listener);
+			userSubscriptions.setSubscriptionExpiredListener(listener);
 
 			// load institutional calendar subscriptions
 			loadInstitutionalSubscriptions();
@@ -237,11 +233,10 @@ public class BaseExternalCalendarSubscriptionService implements
 		try
 		{
 			if (institutionalSubscriptions != null) {
-				((SubscriptionCacheMap) institutionalSubscriptions)
-						.stopCleanerThread();
+				institutionalSubscriptions.stopCleanerThread();
 			}
 			if (userSubscriptions != null) {
-				((SubscriptionCacheMap) userSubscriptions).stopCleanerThread();
+				userSubscriptions.stopCleanerThread();
 			}
 		}
 		catch (Throwable e)
@@ -271,9 +266,7 @@ public class BaseExternalCalendarSubscriptionService implements
 	 */
 	public String calendarSubscriptionReference(String context, String id)
 	{
-		return CalendarService.REFERENCE_ROOT + Entity.SEPARATOR
-				+ CalendarService.REF_TYPE_CALENDAR_SUBSCRIPTION + Entity.SEPARATOR
-				+ context + Entity.SEPARATOR + id;
+		return BaseExternalSubscription.calendarSubscriptionReference(context, id);
 	}
 
 	/*
@@ -549,12 +542,7 @@ public class BaseExternalCalendarSubscriptionService implements
 
 	public String getIdFromSubscriptionUrl(String url)
 	{
-		// use Base64
-		byte[] encoded = CommonsCodecBase64.encodeBase64(url.getBytes());
-		// '/' cannot be used in Reference => use '.' instead (not part of
-		// Base64 alphabet)
-		String encStr = new String(encoded).replaceAll("/", "\\.");
-		return encStr;
+		return BaseExternalSubscription.getIdFromSubscriptionUrl(url);
 	}
 
 	public String getSubscriptionUrlFromId(String id)
@@ -743,133 +731,6 @@ public class BaseExternalCalendarSubscriptionService implements
 	// ######################################################
 	// Support classes
 	// ######################################################
-
-	public class BaseExternalSubscription implements ExternalSubscription
-	{
-		private String subscriptionName;
-
-		private String subscriptionUrl;
-
-		private String reference;
-
-		private String context;
-
-		private Calendar calendar;
-
-		private boolean isInstitutional;
-
-		public BaseExternalSubscription()
-		{
-		}
-
-		public BaseExternalSubscription(String subscriptionName, String subscriptionUrl,
-				String context, Calendar calendar, boolean isInstitutional)
-		{
-			setSubscriptionName(subscriptionName);
-			setSubscriptionUrl(subscriptionUrl);
-			setCalendar(calendar);
-			setContext(context);
-			setInstitutional(isInstitutional);
-			if (calendar != null) setReference(calendar.getReference());
-		}
-
-		public String getSubscriptionName()
-		{
-			return subscriptionName;
-		}
-
-		public void setSubscriptionName(String subscriptionName)
-		{
-			this.subscriptionName = subscriptionName;
-		}
-
-		public String getSubscriptionUrl()
-		{
-			return subscriptionUrl;
-		}
-
-		public void setSubscriptionUrl(String subscriptionUrl)
-		{
-			this.subscriptionUrl = subscriptionUrl;
-		}
-
-		public String getContext()
-		{
-			return context;
-		}
-
-		public void setContext(String context)
-		{
-			this.context = context;
-			if (calendar != null)
-				((ExternalCalendarSubscription) calendar).setContext(context);
-		}
-
-		public void setReference(String reference)
-		{
-			this.reference = reference;
-		}
-
-		public String getReference()
-		{
-			if (calendar != null)
-				return calendar.getReference();
-			else
-				return calendarSubscriptionReference(context,
-						getIdFromSubscriptionUrl(subscriptionUrl));
-		}
-
-		public Calendar getCalendar()
-		{
-			return calendar;
-		}
-
-		public void setCalendar(Calendar calendar)
-		{
-			this.calendar = calendar;
-		}
-
-		public boolean isInstitutional()
-		{
-			return isInstitutional;
-		}
-
-		public void setInstitutional(boolean isInstitutional)
-		{
-			this.isInstitutional = isInstitutional;
-		}
-
-		@Override
-		public boolean equals(Object o)
-		{
-			if (o instanceof BaseExternalSubscription)
-				return getReference().equals(
-						((BaseExternalSubscription) o).getReference());
-			return false;
-		}
-		
-		@Override
-		public int hashCode() {
-			int hashCode = super.hashCode(); 
-			if (getReference() != null)
-			{
-				hashCode += getReference().hashCode();
-			};
-			return hashCode;
-		}
-
-		@Override
-		public String toString()
-		{
-			StringBuilder buff = new StringBuilder();
-			buff.append(getSubscriptionName() != null ? getSubscriptionName() : "");
-			buff.append('|');
-			buff.append(getSubscriptionUrl());
-			buff.append('|');
-			buff.append(getReference());
-			return buff.toString();
-		}
-	}
 
 	public class ExternalCalendarSubscription implements Calendar
 	{
@@ -1607,230 +1468,6 @@ public class BaseExternalCalendarSubscriptionService implements
 			return calendarName;
 		}
 		
-	}
-
-	/**
-	 * Hash table and linked list implementation of the Map interface,
-	 * access-ordered. Older entries will be removed if map exceeds the maximum
-	 * capacity specified.
-	 * 
-	 * @author nfernandes
-	 */
-	class SubscriptionCacheMap extends LinkedHashMap<String, ExternalSubscription>
-			implements Runnable
-	{
-		private static final long serialVersionUID = 1L;
-
-		private final static float DEFAULT_LOAD_FACTOR = 0.75f;
-
-		private int maxCachedEntries;
-
-		private int maxCachedTime;
-
-		private Thread threadCleaner;
-
-		private boolean threadCleanerRunning = false;
-
-		private Object threadCleanerRunningSemaphore = new Object();
-
-		private Map<String, Long> cacheTime;
-
-		private SubscriptionExpiredListener listener;
-		private Object listenerLock = new Object();
-
-		public SubscriptionCacheMap()
-		{
-			this(DEFAULT_MAX_USER_CACHED_ENTRIES, DEFAULT_MAX_USER_CACHED_TIME);
-		}
-
-		/**
-		 * LinkedHashMap implementation that removes least accessed entry and
-		 * (optionally) removes entries with more that maxCachedTime.
-		 * 
-		 * @param maxCachedEntries
-		 *        Maximum number of entries to keep cached.
-		 * @param maxCachedTime
-		 *        If > 0, entries will be removed after being 'maxCachedTime' in
-		 *        cache.
-		 */
-		public SubscriptionCacheMap(int maxCachedEntries, int maxCachedTime)
-		{
-			super(maxCachedEntries, DEFAULT_LOAD_FACTOR, true);
-			this.maxCachedEntries = maxCachedEntries;
-			this.maxCachedTime = maxCachedTime;
-			if (maxCachedTime > 0)
-			{
-				cacheTime = new ConcurrentHashMap<String, Long>();
-				startCleanerThread();
-			}
-		}
-
-		public void setSubscriptionExpiredListener(SubscriptionExpiredListener listener)
-		{
-			synchronized(listenerLock)
-			{
-				this.listener = listener;
-			}
-		}
-
-		public void removeSubscriptionExpiredListener()
-		{
-			synchronized(listenerLock)
-			{
-				this.listener = null;
-			}
-		}
-
-		@Override
-		public ExternalSubscription get(Object arg0)
-		{
-			ExternalSubscription e = super.get(arg0);
-			return e;
-		}
-
-		@Override
-		public ExternalSubscription put(String key, ExternalSubscription value)
-		{
-			if (maxCachedTime > 0 && key != null)
-			{
-				cacheTime.put(key, System.currentTimeMillis());
-			}
-			return super.put(key, value);
-		}
-
-		@Override
-		public void putAll(Map<? extends String, ? extends ExternalSubscription> map)
-		{
-			if (maxCachedTime > 0 && map != null)
-			{
-				for (String key : map.keySet())
-				{
-					cacheTime.put(key, System.currentTimeMillis());
-				}
-			}
-			if ( map != null )
-				super.putAll(map);
-		}
-
-		@Override
-		public void clear()
-		{
-			if (maxCachedTime > 0)
-			{
-				cacheTime.clear();
-			}
-			super.clear();
-		}
-
-		@Override
-		public ExternalSubscription remove(Object key)
-		{
-			if (maxCachedTime > 0 && key != null)
-			{
-				if (cacheTime.containsKey(key)) cacheTime.remove(key);
-			}
-			return super.remove(key);
-		}
-
-		public void setMaxCachedEntries(int maxCachedEntries)
-		{
-			this.maxCachedEntries = maxCachedEntries;
-		}
-
-		@Override
-		protected boolean removeEldestEntry(Entry<String, ExternalSubscription> arg0)
-		{
-			return size() > maxCachedEntries;
-		}
-
-		public void run()
-		{
-			try
-			{
-				while (threadCleanerRunning)
-				{
-					// clean expired entries
-					List<String> toClear = new ArrayList<String>();
-					for (String key : this.keySet())
-					{
-						long cachedFor = System.currentTimeMillis() - cacheTime.get(key);
-						if (cachedFor > maxCachedTime)
-						{
-							toClear.add(key);
-						}
-					}
-					// cleaning is not object removal but, Calendar removal from
-					// value (ExternalSubscription)
-					for (String key : toClear)
-					{
-						synchronized (listenerLock)
-						{
-							ExternalSubscription e = this.get(key);
-							if (e != null)
-							{
-								e.setCalendar(null);
-								this.put(key, e);
-								m_log.debug("Cleared cache for expired Calendar Subscription: " + key);
-								if (listener != null)
-								{
-									listener.subscriptionExpired(key, e);
-								}
-							}
-						}
-					}
-
-					// sleep if no work to do
-					if (!threadCleanerRunning) break;
-					try
-					{
-						synchronized (threadCleanerRunningSemaphore)
-						{
-							threadCleanerRunningSemaphore.wait(maxCachedTime);
-						}
-					}
-					catch (InterruptedException e)
-					{
-						m_log.warn("Failed to sleep SmallCacheMap entry cleaner thread",
-								e);
-					}
-				}
-			}
-			catch (Throwable t)
-			{
-				m_log.debug("Failed to execute SmallCacheMap entry cleaner thread", t);
-			}
-			finally
-			{
-				if (threadCleanerRunning)
-				{
-					// thread was stopped by an unknown error: restart
-					m_log
-							.debug("SmallCacheMap entry cleaner thread was stoped by an unknown error: restarting...");
-					startCleanerThread();
-				}
-				else
-					m_log.debug("Finished SmallCacheMap entry cleaner thread");
-			}
-		}
-
-		/** Start the update thread */
-		private void startCleanerThread()
-		{
-			threadCleanerRunning = true;
-			threadCleaner = null;
-			threadCleaner = new Thread(this, this.getClass().getName());
-			threadCleaner.start();
-		}
-
-		/** Stop the update thread */
-		private void stopCleanerThread()
-		{
-			threadCleanerRunning = false;
-			synchronized (threadCleanerRunningSemaphore)
-			{
-				threadCleanerRunningSemaphore.notifyAll();
-			}
-		}
 	}
 
 	interface SubscriptionExpiredListener
