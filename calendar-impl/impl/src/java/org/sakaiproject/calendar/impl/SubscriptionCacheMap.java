@@ -141,9 +141,10 @@ public class SubscriptionCacheMap implements Runnable {
 	public void run() {
 		try {
 			while (threadCleanerRunning) {
-				// clean expired entries
-				cleanup();
-
+				// Find the expired entries (synchronized)
+				List<String> toClear = findExpired();
+				// Now reload any of them.
+				clear(toClear);
 				// sleep if no work to do
 				if (!threadCleanerRunning)
 					break;
@@ -157,20 +158,24 @@ public class SubscriptionCacheMap implements Runnable {
 							e);
 				}
 			}
-		} catch (Throwable t) {
-			m_log.debug("Failed to execute SmallCacheMap entry cleaner thread",
-					t);
+		} catch (Exception t) {
+			m_log.warn("Error while running cache cleaner.", t);
 		} finally {
 			if (threadCleanerRunning) {
 				// thread was stopped by an unknown error: restart
-				m_log.debug("SmallCacheMap entry cleaner thread was stoped by an unknown error: restarting...");
+				m_log.info("SmallCacheMap entry cleaner thread was stoped by an unknown error: restarting...");
 				startCleanerThread();
 			} else
 				m_log.debug("Finished SmallCacheMap entry cleaner thread");
 		}
 	}
 
-	private synchronized void cleanup() {
+	/**
+	 * This finds the expired entries in the map, it's synchronised so that we don't
+	 * have the map changing while we are using our iterator.
+	 * @return A list of expired keys from the map. Will return an empty list if there are none.
+	 */
+	private synchronized List<String> findExpired() {
 		List<String> toClear = new ArrayList<String>();
 		for (String key : map.keySet()) {
 			// Might be null (bad), autoboxing..
@@ -180,6 +185,15 @@ public class SubscriptionCacheMap implements Runnable {
 				toClear.add(key);
 			}
 		}
+		return toClear;
+	}
+	
+	/**
+	 * This updates the expired entries, it isn't synchronized so that it doesn't block the map
+	 * for a long time. Although the operations it calls to update the map will aquire a lock (eg get/put).
+	 * @param toClear The list of URLs to reload.
+	 */
+	private void clear(List<String> toClear) {
 		// cleaning is not object removal but, Calendar removal from
 		// value (ExternalSubscription)
 		for (String url : toClear) {
