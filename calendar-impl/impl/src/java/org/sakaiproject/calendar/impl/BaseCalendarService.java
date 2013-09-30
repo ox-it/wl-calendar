@@ -6927,12 +6927,11 @@ public abstract class BaseCalendarService implements CalendarService, StorageUse
 		ical.getComponents().add(registry.getTimeZone(tzId.getValue()).getVTimeZone());
 		
 		CalendarOutputter icalOut = new CalendarOutputter();
-		int numEvents = generateICal(ical, calRefs);
+		generateICal(ical, calRefs);
 			
 		try 
 		{
-			if ( numEvents >= 0 )
-				icalOut.output( ical, os );
+			icalOut.output( ical, os );
 		}
 		catch (Exception e)
 		{
