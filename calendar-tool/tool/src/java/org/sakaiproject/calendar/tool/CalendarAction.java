@@ -24,6 +24,8 @@ package org.sakaiproject.calendar.tool;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.text.DateFormat;
 import java.text.NumberFormat;
 import java.text.ParseException;
@@ -1689,6 +1691,14 @@ extends VelocityPortletStateAction
 			}
 			else
 			{
+
+				try {
+					new URL(calendarUrl);
+				} catch (MalformedURLException e) {
+					addAlert(sstate, rb.getString("java.alert.subsurlinvalid"));
+					return;
+				}
+
 				String contextId = EntityManager.newReference(
 						state.getPrimaryCalendarReference()).getContext();
 				String id = ExternalCalendarSubscriptionService
