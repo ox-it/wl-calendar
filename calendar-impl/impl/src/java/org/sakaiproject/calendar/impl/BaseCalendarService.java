@@ -5224,8 +5224,6 @@ public abstract class BaseCalendarService implements CalendarService, DoubleStor
 	// Misc.
 	protected static final String HOUR_MINUTE_SEPARATOR = ":";
 
-	protected final static String ICAL_X_WR_CALNAME = "ical.x-wr-calname";
-
 	/**
 	 * This is a container for a list of columns, plus the timerange for all the events contained in the row. This time range is a union of all the separate time ranges.
 	 */
