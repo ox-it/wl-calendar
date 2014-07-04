@@ -7284,7 +7284,7 @@ public abstract class BaseCalendarService implements CalendarService, DoubleStor
 			calendarName = m_siteService.getSite(ref.getContext()).getTitle();
 			boolean isMyDashboard = m_siteService.isUserSite(ref.getContext());
 			if (isMyDashboard){
-				String serviceName = m_serverConfigurationService.getString(UI_SERVICE, SAKAI);
+				calendarName = m_serverConfigurationService.getString(UI_SERVICE, SAKAI);
 			}
 		} catch (IdUnusedException e) {
 		}
