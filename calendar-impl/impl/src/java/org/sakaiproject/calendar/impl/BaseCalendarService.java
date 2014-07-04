@@ -5220,6 +5220,8 @@ public abstract class BaseCalendarService implements CalendarService, DoubleStor
 	// Misc.
 	protected static final String HOUR_MINUTE_SEPARATOR = ":";
 
+	protected final static String ICAL_X_WR_CALNAME = "ical.x-wr-calname";
+
 	/**
 	 * This is a container for a list of columns, plus the timerange for all the events contained in the row. This time range is a union of all the separate time ranges.
 	 */
@@ -6751,7 +6753,7 @@ public abstract class BaseCalendarService implements CalendarService, DoubleStor
 		return calendarReferenceList;
 	}
 
-	protected void printICalSchedule(String calelndarName, List<String> calRefs, OutputStream os)
+	protected void printICalSchedule(String calendarName, List<String> calRefs, OutputStream os)
 //	protected void printICalSchedule(String calRef, OutputStream os) 
 		throws PermissionException
 	{
@@ -6760,8 +6762,9 @@ public abstract class BaseCalendarService implements CalendarService, DoubleStor
 		ical.getProperties().add(new ProdId("-//SakaiProject//iCal4j 1.0//EN"));
 		ical.getProperties().add(Version.VERSION_2_0);
 		ical.getProperties().add(CalScale.GREGORIAN);
-		ical.getProperties().add(new XProperty("X-WR-CALNAME", calelndarName));
-		
+		ical.getProperties().add(new XProperty("X-WR-CALNAME", calendarName));
+		ical.getProperties().add(new XProperty("X-WR-CALDESC", calendarName));
+
 		TimeZoneRegistry registry = TimeZoneRegistryFactory.getInstance().createRegistry(); 
 		TzId tzId = new TzId( m_timeService.getLocalTimeZone().getID() ); 
 		ical.getComponents().add(registry.getTimeZone(tzId.getValue()).getVTimeZone());
@@ -7277,6 +7280,10 @@ public abstract class BaseCalendarService implements CalendarService, DoubleStor
 		String calendarName = "";
 		try {
 			calendarName = m_siteService.getSite(ref.getContext()).getTitle();
+			boolean isMyDashboard = m_siteService.isUserSite(ref.getContext());
+			if (isMyDashboard){
+				calendarName = rb.getString(ICAL_X_WR_CALNAME);
+			}
 		} catch (IdUnusedException e) {
 		}
 		printICalSchedule(calendarName, referenceList, res.getOutputStream());
