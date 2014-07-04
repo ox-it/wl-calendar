@@ -131,6 +131,10 @@ public abstract class BaseCalendarService implements CalendarService, DoubleStor
    private ContentHostingService contentHostingService;
    
 	private GroupComparator groupComparator = new GroupComparator();
+
+	public static final String UI_SERVICE = "ui.service";
+
+	public static final String SAKAI = "Sakai";
 	
 	/**
 	 * Access this service from the inner classes.
@@ -7282,7 +7286,8 @@ public abstract class BaseCalendarService implements CalendarService, DoubleStor
 			calendarName = m_siteService.getSite(ref.getContext()).getTitle();
 			boolean isMyDashboard = m_siteService.isUserSite(ref.getContext());
 			if (isMyDashboard){
-				calendarName = rb.getString(ICAL_X_WR_CALNAME);
+				String serviceName = m_serverConfigurationService.getString(UI_SERVICE);
+				calendarName = serviceName.equals("") ? SAKAI : serviceName;
 			}
 		} catch (IdUnusedException e) {
 		}
