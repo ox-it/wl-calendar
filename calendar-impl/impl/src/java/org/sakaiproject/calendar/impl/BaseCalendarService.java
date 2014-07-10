@@ -131,6 +131,10 @@ public abstract class BaseCalendarService implements CalendarService, DoubleStor
    private ContentHostingService contentHostingService;
    
 	private GroupComparator groupComparator = new GroupComparator();
+
+	public static final String UI_SERVICE = "ui.service";
+
+	public static final String SAKAI = "Sakai";
 	
 	/**
 	 * Access this service from the inner classes.
@@ -6751,7 +6755,7 @@ public abstract class BaseCalendarService implements CalendarService, DoubleStor
 		return calendarReferenceList;
 	}
 
-	protected void printICalSchedule(String calelndarName, List<String> calRefs, OutputStream os)
+	protected void printICalSchedule(String calendarName, List<String> calRefs, OutputStream os)
 //	protected void printICalSchedule(String calRef, OutputStream os) 
 		throws PermissionException
 	{
@@ -6760,8 +6764,9 @@ public abstract class BaseCalendarService implements CalendarService, DoubleStor
 		ical.getProperties().add(new ProdId("-//SakaiProject//iCal4j 1.0//EN"));
 		ical.getProperties().add(Version.VERSION_2_0);
 		ical.getProperties().add(CalScale.GREGORIAN);
-		ical.getProperties().add(new XProperty("X-WR-CALNAME", calelndarName));
-		
+		ical.getProperties().add(new XProperty("X-WR-CALNAME", calendarName));
+		ical.getProperties().add(new XProperty("X-WR-CALDESC", calendarName));
+
 		TimeZoneRegistry registry = TimeZoneRegistryFactory.getInstance().createRegistry(); 
 		TzId tzId = new TzId( m_timeService.getLocalTimeZone().getID() ); 
 		ical.getComponents().add(registry.getTimeZone(tzId.getValue()).getVTimeZone());
@@ -7277,6 +7282,10 @@ public abstract class BaseCalendarService implements CalendarService, DoubleStor
 		String calendarName = "";
 		try {
 			calendarName = m_siteService.getSite(ref.getContext()).getTitle();
+			boolean isMyDashboard = m_siteService.isUserSite(ref.getContext());
+			if (isMyDashboard){
+				calendarName = m_serverConfigurationService.getString(UI_SERVICE, SAKAI);
+			}
 		} catch (IdUnusedException e) {
 		}
 		printICalSchedule(calendarName, referenceList, res.getOutputStream());
