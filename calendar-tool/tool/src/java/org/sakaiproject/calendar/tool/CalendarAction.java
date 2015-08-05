@@ -7605,11 +7605,6 @@ extends VelocityPortletStateAction
 		}
 
 		bar.add( new MenuEntry(rb.getString("java.new"), null, allow_new, MenuItem.CHECKED_NA, "doNew") );
-		
-		//
-		// See if we are allowed to merge items.
-		//
-		bar.add( new MenuEntry(mergedCalendarPage.getButtonText(), null, allow_merge_calendars, MenuItem.CHECKED_NA, mergedCalendarPage.getButtonHandlerID()) );
 
 		// See if we are allowed to import items.
 		if ( allow_import_export )
