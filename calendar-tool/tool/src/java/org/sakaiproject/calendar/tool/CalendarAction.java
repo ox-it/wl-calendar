@@ -7603,20 +7603,25 @@ extends VelocityPortletStateAction
 			allow_revise = false;
 			allow_delete = false;
 		}
-		
+
 		bar.add( new MenuEntry(rb.getString("java.new"), null, allow_new, MenuItem.CHECKED_NA, "doNew") );
-		
-		//
-		// See if we are allowed to merge items.
-		//
-		bar.add( new MenuEntry(mergedCalendarPage.getButtonText(), null, allow_merge_calendars, MenuItem.CHECKED_NA, mergedCalendarPage.getButtonHandlerID()) );
 
 		// See if we are allowed to import items.
 		if ( allow_import_export )
 		{
 			bar.add( new MenuEntry(rb.getString("java.import"), null, allow_new, MenuItem.CHECKED_NA, "doImport") );
 		}
-		
+		//
+		// See if we are allowed to merge items.
+		//
+		bar.add( new MenuEntry(mergedCalendarPage.getButtonText(), null, allow_merge_calendars, MenuItem.CHECKED_NA, mergedCalendarPage.getButtonHandlerID()) );
+
+		// See if we are allowed to configure external calendar subscriptions
+		if ( allow_subscribe && ServerConfigurationService.getBoolean(ExternalCalendarSubscriptionService.SAK_PROP_EXTSUBSCRIPTIONS_ENABLED,false))
+		{
+			bar.add( new MenuEntry(rb.getString("java.subscriptions"),null, allow_subscribe, MenuItem.CHECKED_NA, "doSubscriptions") );
+		}
+
 		// See if we are allowed to export items.
 		String calId = state.getPrimaryCalendarReference();
 		if ( (allow_import_export || CalendarService.getExportEnabled(calId)) && 
@@ -7624,13 +7629,7 @@ extends VelocityPortletStateAction
 		{
 			bar.add( new MenuEntry(rb.getString("java.export"), null, allow_new, MenuItem.CHECKED_NA, "doIcalExportName") );
 		}
-		
-		// See if we are allowed to configure external calendar subscriptions
-		if ( allow_subscribe && ServerConfigurationService.getBoolean(ExternalCalendarSubscriptionService.SAK_PROP_EXTSUBSCRIPTIONS_ENABLED,false))
-			{
-				bar.add( new MenuEntry(rb.getString("java.subscriptions"), null, allow_subscribe, MenuItem.CHECKED_NA, "doSubscriptions") );
-			}
-		
+
 		// A link for subscribing to the implicit calendar
 		if ( ServerConfigurationService.getBoolean("ical.opaqueurl.subscribe",false) )
 		{
