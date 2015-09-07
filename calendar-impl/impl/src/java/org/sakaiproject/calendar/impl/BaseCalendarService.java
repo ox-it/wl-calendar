@@ -94,6 +94,8 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.text.DateFormat;
@@ -6371,16 +6373,21 @@ public abstract class BaseCalendarService implements CalendarService, DoubleStor
 	}
 	
 	/* Given a current date via the calendarUtil paramter, returns a TimeRange for the year,
-	 * 6 months either side of the current date. (calculate milleseconds in 6 months)
+	 * fromMonthsInput reads the number of months from past to be displayed and toMonthsInput reads number of months in future required to be displayed. 
 	 */
-   private static long SIX_MONTHS = (long)1000 * (long)60 * (long)60 * (long)24 * (long)183;
-	
 	public TimeRange getICalTimeRange()
 	{
-		Time now = m_timeService.newTime();
-		Time startTime = m_timeService.newTime( now.getTime() - SIX_MONTHS );
-		Time endTime = m_timeService.newTime( now.getTime() + SIX_MONTHS );
-		
+		int toMonthsInput = m_serverConfigurationService.getInt("cal.exp.toMonths",12);
+		int fromMonthsInput = m_serverConfigurationService.getInt("cal.exp.fromMonths",6);
+
+		java.util.Calendar calTo = java.util.Calendar.getInstance();
+		calTo.add(java.util.Calendar.MONTH, toMonthsInput);
+
+		java.util.Calendar calFrom = java.util.Calendar.getInstance();
+		calFrom.add(java.util.Calendar.MONTH, -fromMonthsInput);
+
+		Time startTime = m_timeService.newTime(calFrom.getTimeInMillis());
+		Time endTime = m_timeService.newTime(calTo.getTimeInMillis());
 		return m_timeService.newTimeRange(startTime,endTime,true,true);
 	}
 	
