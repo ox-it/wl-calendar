@@ -94,8 +94,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.text.DateFormat;
@@ -6373,12 +6371,13 @@ public abstract class BaseCalendarService implements CalendarService, DoubleStor
 	}
 	
 	/* Given a current date via the calendarUtil paramter, returns a TimeRange for the year,
-	 * fromMonthsInput reads the number of months from past to be displayed and toMonthsInput reads number of months in future required to be displayed. 
+	 * fromMonthsInput number of months from past to be included
+	  *toMonthsInput number of months in future  to be included.
 	 */
 	public TimeRange getICalTimeRange()
 	{
-		int toMonthsInput = m_serverConfigurationService.getInt("cal.exp.toMonths",12);
-		int fromMonthsInput = m_serverConfigurationService.getInt("cal.exp.fromMonths",6);
+		int toMonthsInput = m_serverConfigurationService.getInt("calendar.export.next.months",12);
+		int fromMonthsInput = m_serverConfigurationService.getInt("calendar.export.previous.months",6);
 
 		java.util.Calendar calTo = java.util.Calendar.getInstance();
 		calTo.add(java.util.Calendar.MONTH, toMonthsInput);
