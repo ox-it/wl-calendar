@@ -6376,7 +6376,7 @@ public abstract class BaseCalendarService implements CalendarService, DoubleStor
 	 */
 	public TimeRange getICalTimeRange()
 	{
-		int toMonthsInput = m_serverConfigurationService.getInt("calendar.export.next.months",12);
+		int toMonthsInput = m_serverConfigurationService.getInt("calendar.export.next.months",6);
 		int fromMonthsInput = m_serverConfigurationService.getInt("calendar.export.previous.months",6);
 
 		java.util.Calendar calTo = java.util.Calendar.getInstance();
