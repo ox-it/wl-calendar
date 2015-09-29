@@ -4041,6 +4041,11 @@ extends VelocityPortletStateAction
 		boolean exportEnabled = CalendarService.getExportEnabled(calId);
 		context.put("enable_export", String.valueOf(exportEnabled) );
 
+		String icalInfoArr[] = {String.valueOf(ServerConfigurationService.getInt("calendar.export.next.months",6)),
+			String.valueOf(ServerConfigurationService.getInt("calendar.export.previous.months",6))};
+		String icalInfoStr = rb.getFormattedMessage("ical.info",icalInfoArr);
+		context.put("icalInfoStr",icalInfoStr);
+
 		// pick the "export" template based on the standard template name
 		String template = (String) getContext(rundata).get("template");
 		return template + "_icalexport";
@@ -4055,6 +4060,10 @@ extends VelocityPortletStateAction
 		context.put("isMyWorkspace", isOnWorkspaceTab());
 		context.put("form-generate", BUTTON + "doOpaqueUrlGenerate");
 		context.put("form-cancel", BUTTON + "doCancel");
+		String icalInfoArr[] = {String.valueOf(ServerConfigurationService.getInt("calendar.export.next.months",6)),
+			String.valueOf(ServerConfigurationService.getInt("calendar.export.previous.months",6))};
+		String icalInfoStr = rb.getFormattedMessage("ical.info",icalInfoArr);
+		context.put("icalInfoStr",icalInfoStr);
 	}
 	
 	/**
@@ -4066,6 +4075,12 @@ extends VelocityPortletStateAction
 		Reference calendarRef = EntityManager.newReference(calId);
 		String opaqueUrl = ServerConfigurationService.getAccessUrl()
 			+ CalendarService.calendarOpaqueUrlReference(calendarRef);
+
+		String icalInfoArr[] = {String.valueOf(ServerConfigurationService.getInt("calendar.export.next.months",6)),
+			String.valueOf(ServerConfigurationService.getInt("calendar.export.previous.months",6))};
+		String icalInfoStr = rb.getFormattedMessage("ical.info",icalInfoArr);
+		context.put("icalInfoStr",icalInfoStr);
+
 		context.put("opaqueUrl", opaqueUrl);
 		context.put("webcalUrl", opaqueUrl.replaceFirst("http", "webcal"));
 		context.put("isMyWorkspace", isOnWorkspaceTab());
