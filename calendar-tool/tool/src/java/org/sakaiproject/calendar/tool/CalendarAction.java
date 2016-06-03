@@ -7650,8 +7650,8 @@ extends VelocityPortletStateAction
 			bar.add( new MenuEntry(rb.getString("java.export"), rb.getString("java.export.title"), null, allow_new, MenuItem.CHECKED_NA, "doIcalExportName") );
 		}
 
-		// A link for subscribing to the implicit calendar
-		if ( ServerConfigurationService.getBoolean("ical.opaqueurl.subscribe",false) )
+		// A link for subscribing to the implicit calendar if the user is logged in.
+		if (sessionManager.getCurrentSessionUserId() != null && ServerConfigurationService.getBoolean("ical.opaqueurl.subscribe",false))
 		{
 			bar.add( new MenuEntry(rb.getString("java.opaque_subscribe"), rb.getString("java.opaque_subscribe.title"), null, allow_subscribe_this, MenuItem.CHECKED_NA, "doOpaqueUrl") );
 		}
