@@ -54,49 +54,8 @@ calendar Portlet
 *#
 
 #macro (iconImage $eventType)
-#if ($eventType=="Academic Calendar")
-<img src = "#imageLink("$config.getProperty('legend.icon1')")" alt="$tlang.getString('legend.key1')" border="0">
-#elseif ($eventType =="Activity")
-<img src = "#imageLink("$config.getProperty('legend.icon2')")" alt="$tlang.getString('legend.key2')" border="0">
-#elseif ($eventType =="Cancellation")
-<img src = "#imageLink("$config.getProperty('legend.icon3')")" alt="$tlang.getString('legend.key3')" border="0">
-#elseif ($eventType =="Class section - Discussion")
-<img src = "#imageLink("$config.getProperty('legend.icon4')")" alt ="$tlang.getString('legend.key4')" border="0">
-#elseif ($eventType =="Class section - Lab")
-<img src = "#imageLink("$config.getProperty('legend.icon5')")" alt="$tlang.getString('legend.key5')" border="0">
-#elseif ($eventType =="Class section - Lecture")
-<img src = "#imageLink("$config.getProperty('legend.icon6')")" alt="$tlang.getString('legend.key6')" border="0">
-#elseif ($eventType =="Class section - Small Group")
-<img src = "#imageLink("$config.getProperty('legend.icon7')")" alt="$tlang.getString('legend.key7')" border="0">
-#elseif ($eventType =="Class session")
-<img src = "#imageLink("$config.getProperty('legend.icon8')")" alt="$tlang.getString('legend.key8')" border="0">
-#elseif ($eventType =="Computer Session")
-<img src = "#imageLink("$config.getProperty('legend.icon9')")" alt="$tlang.getString('legend.key9')" border="0">
-#elseif ($eventType =="Deadline")
-<img src = "#imageLink("$config.getProperty('legend.icon10')")" alt="$tlang.getString('legend.key10')" border="0">
-#elseif ($eventType =="Exam")
-<img src = "#imageLink("$config.getProperty('legend.icon11')")" alt="$tlang.getString('legend.key11')" border="0">
-#elseif ($eventType =="Meeting")
-<img src = "#imageLink("$config.getProperty('legend.icon12')")" alt="$tlang.getString('legend.key12')" border="0">
-#elseif ($eventType =="Multidisciplinary Conference")
-<img src = "#imageLink("$config.getProperty('legend.icon13')")" alt="$tlang.getString('legend.key13')" border="0">
-#elseif ($eventType =="Quiz")
-<img src = "#imageLink("$config.getProperty('legend.icon14')")" alt="$tlang.getString('legend.key14')" border="0">
-#elseif ($eventType =="Special event")
-<img src = "#imageLink("$config.getProperty('legend.icon15')")" alt="$tlang.getString('legend.key15')" border="0">
-#elseif ($eventType =="Web Assignment")
-<img src = "#imageLink("$config.getProperty('legend.icon16')")" alt="$tlang.getString('legend.key16')" border="0">
-#elseif ($eventType =="Tutorial")
-<img src = "#imageLink("$config.getProperty('legend.icon17')")" alt="$tlang.getString('legend.key17')" border="0">
-#elseif ($eventType =="Workshop")
-<img src = "#imageLink("$config.getProperty('legend.icon18')")" alt="$tlang.getString('legend.key18')" border="0">
-#elseif ($eventType =="Submission Date")
-<img src = "#imageLink("$config.getProperty('legend.icon19')")" alt="$tlang.getString('legend.key19')" border="0">
-#elseif ($eventType =="Formative Assessment")
-<img src = "#imageLink("$config.getProperty('legend.icon20')")" alt="$tlang.getString('legend.key20')" border="0">
+<img src = "#imageLink($eventIconMap.get($eventType))" alt="$eventType" border="0">
 #end
-#end
-
 
 #if ($message=='new')
         #parse("/vm/calendar/chef_calendar_new.vm")
