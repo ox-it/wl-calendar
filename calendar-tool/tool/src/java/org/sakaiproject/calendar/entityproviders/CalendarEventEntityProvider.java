@@ -118,9 +118,9 @@ public class CalendarEventEntityProvider extends AbstractEntityProvider
 	 * Optional firstDate and lastDate query params in ISO-8601 date format, YYYY-MM-DD
 	 */
 	@EntityCustomAction(action = "site", viewKey = EntityView.VIEW_LIST)
-	public List<CalendarEventSummary> getCalendarEventsForSite(final EntityView view, final Map<String, Object> params) {
+	public List<CalendarEventDetails> getCalendarEventsForSite(final EntityView view, final Map<String, Object> params) {
 
-		final List<CalendarEventSummary> rv = new ArrayList<CalendarEventSummary>();
+		final List<CalendarEventDetails> rv = new ArrayList<CalendarEventDetails>();
 
 		// get siteId
 		final String siteId = view.getPathSegment(2);
@@ -221,9 +221,9 @@ public class CalendarEventEntityProvider extends AbstractEntityProvider
 	 * @param range {@link TimeRange} to filter by. Must be null if not sending one.
 	 * @return
 	 */
-	private List<CalendarEventSummary> getEventsForSite(final String siteId, final TimeRange range) {
+	private List<CalendarEventDetails> getEventsForSite(final String siteId, final TimeRange range) {
 
-		final List<CalendarEventSummary> rval = new ArrayList<CalendarEventSummary>();
+		final List<CalendarEventDetails> rval = new ArrayList<CalendarEventDetails>();
 
 		try {
 			final Calendar cal = this.calendarService.getCalendar(String.format(
@@ -232,10 +232,10 @@ public class CalendarEventEntityProvider extends AbstractEntityProvider
 			for (final Object o : cal.getEvents(range, null)) {
 				final CalendarEvent event = (CalendarEvent) o;
 
-				final CalendarEventSummary summary = new CalendarEventSummary(event);
-				summary.setEventImage(eventImageMap.get(event.getType()));
-				summary.setSiteId(siteId);
-				rval.add(summary);
+				final CalendarEventDetails eventDetails = new CalendarEventDetails(event);
+				eventDetails.setEventImage(eventImageMap.get(event.getType()));
+				eventDetails.setSiteId(siteId);
+				rval.add(eventDetails);
 			}
 		} catch (final IdUnusedException e) {
 			// may not have a calendar, skip it
@@ -304,18 +304,18 @@ public class CalendarEventEntityProvider extends AbstractEntityProvider
 	 * @param range
 	 * @return
 	 */
-	private List<CalendarEventSummary> getMergedCalendarEventsForSite(final String siteId, final TimeRange range) {
-		List<CalendarEventSummary> mergeCal = new ArrayList<CalendarEventSummary>();
+	private List<CalendarEventDetails> getMergedCalendarEventsForSite(final String siteId, final TimeRange range) {
+		List<CalendarEventDetails> mergeCal = new ArrayList<CalendarEventDetails>();
 		CalendarEventVector calendarEventVector = calendarService.getEvents(calendarService.getCalendarReferences(siteId), range);
 		for (Object o : calendarEventVector) {
 			CalendarEvent event = (CalendarEvent) o;
 
-			CalendarEventSummary eventSummary = new CalendarEventSummary(event);
-			eventSummary.setEventImage(eventImageMap.get(event.getType()));
+			CalendarEventDetails eventDetails = new CalendarEventDetails(event);
+			eventDetails.setEventImage(eventImageMap.get(event.getType()));
 			//as event can be from different site , find sitId for the event
 			Reference reference = entityManager.newReference(event.getCalendarReference());
-			eventSummary.setSiteId(reference.getContext());
-			mergeCal.add(eventSummary);
+			eventDetails.setSiteId(reference.getContext());
+			mergeCal.add(eventDetails);
 		}
 		return mergeCal;
 	}
